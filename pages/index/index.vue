@@ -1,9 +1,7 @@
 <template>
 	<view class="content">
-		<image class="logo" src="/static/logo.png"></image>
-		<view class="text-area">
-			<text class="title">{{title}}</text>
-		</view>
+		<text class="title">🐾 欢迎来到宠物健康管家</text>
+		<text class="subtitle">这里将展示宠物心情监测和今日AI养护概览</text>
 	</view>
 </template>
 
@@ -11,14 +9,12 @@
 	export default {
 		data() {
 			return {
-				title: 'Hello'
+				title: '首页'
 			}
 		},
 		onLoad() {
-
 		},
 		methods: {
-
 		}
 	}
 </script>
@@ -29,24 +25,16 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		padding-top: 100rpx;
 	}
-
-	.logo {
-		height: 200rpx;
-		width: 200rpx;
-		margin-top: 200rpx;
-		margin-left: auto;
-		margin-right: auto;
-		margin-bottom: 50rpx;
-	}
-
-	.text-area {
-		display: flex;
-		justify-content: center;
-	}
-
 	.title {
-		font-size: 36rpx;
-		color: #8f8f94;
+		font-size: 40rpx;
+		font-weight: bold;
+		color: #42b983; /* 使用应用的主色调绿色 */
+		margin-bottom: 20rpx;
+	}
+	.subtitle {
+		font-size: 28rpx;
+		color: #666;
 	}
 </style>
