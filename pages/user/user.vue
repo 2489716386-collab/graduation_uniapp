@@ -2,7 +2,7 @@
 	<view class="container">
 		<view class="user-header">
 			<view class="header-action-btn" @click="editProfile">
-				<text class="arrow">></text>
+				<text class="arrow">❯</text>
 			</view>
 
 			<view class="user-profile-centered">
@@ -59,19 +59,19 @@
 		<view class="card-section menu-section">
 			<view class="menu-item" @click="goToSystemNotices">
 				<text class="menu-text">系统通知</text>
-				<text class="arrow">&gt;</text>
+				<text class="arrow">❯</text>
 			</view>
 			<view class="menu-item" @click="goToFeedback">
 				<text class="menu-text">问题反馈</text>
-				<text class="arrow">&gt;</text>
+				<text class="arrow">❯</text>
 			</view>
 			<view class="menu-item" @click="goToSettings">
 				<text class="menu-text">关于我们</text>
-				<text class="arrow">&gt;</text>
+				<text class="arrow">❯</text>
 			</view>
 			<view class="menu-item logout-item" @click="logout">
 				<text class="menu-text logout-text">退出登录</text>
-				<text class="arrow red">&gt;</text>
+				<text class="arrow red">❯</text>
 			</view>
 		</view>
 	</view>
