@@ -48,6 +48,12 @@
 			"style": {
 				"navigationBarTitleText": "设置"
 			}
+		},
+		{
+			"path": "pages/user/profile-edit",
+			"style": {
+				"navigationBarTitleText": "编辑个人资料"
+			}
 		}
 	],
 	"globalStyle": {

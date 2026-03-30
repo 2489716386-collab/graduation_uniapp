@@ -6,9 +6,9 @@
 			</view>
 			
 			<view class="user-profile-centered">
-				<image class="avatar" :src="userInfo.avatarUrl || '/static/default-avatar.png'" mode="aspectFill"></image>
-				<text class="nickname">{{ userInfo.nickname || '未设置昵称' }}</text>
-				<text class="bio">铲屎官的一天</text> 
+			    <image class="avatar" :src="userInfo.avatarUrl || '/static/default-avatar.png'" mode="aspectFill"></image>
+			    <text class="nickname">{{ userInfo.nickname || '未设置昵称' }}</text>
+			    <text class="bio">{{ userInfo.bio || '这个人很懒，什么都没写~' }}</text> 
 			</view>
 		</view>
 
@@ -102,7 +102,7 @@
 				if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
 				return age > 0 ? age + '岁' : '不满1岁';
 			},
-			editProfile() { uni.showToast({ title: '修改资料开发中', icon: 'none' }); },
+			editProfile() { uni.navigateTo({ url: '/pages/user/profile-edit' }); },
 			goToPetEdit(petId) {
 				let url = '/pages/user/pet-edit';
 				if (petId) url += `?petId=${petId}`;
