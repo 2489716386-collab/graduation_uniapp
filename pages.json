@@ -1,6 +1,12 @@
 {
 	"pages": [
 		{
+			"path": "pages/login/login",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
 			"path": "pages/user/user",
 			"style": {
 				"navigationBarTitleText": "我的"
@@ -23,6 +29,25 @@
 			"style": {
 				"navigationBarTitleText": "社区发现"
 			}
+		},
+		{
+			"path": "pages/user/pet-edit",
+			"style": {
+				"navigationBarTitleText": "宠物档案编辑",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/user/feedback",
+			"style": {
+				"navigationBarTitleText": "问题反馈"
+			}
+		},
+		{
+			"path": "pages/user/settings",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
 		}
 	],
 	"globalStyle": {
@@ -36,8 +61,7 @@
 		"selectedColor": "#42b983",
 		"borderStyle": "black",
 		"backgroundColor": "#ffffff",
-		"list": [
-			{
+		"list": [{
 				"pagePath": "pages/index/index",
 				"iconPath": "static/tabbar/home.png",
 				"selectedIconPath": "static/tabbar/home-active.png",
