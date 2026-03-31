@@ -2,7 +2,7 @@
 	<view class="container">
 		<view class="header">
 			<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-			<text class="title">宠物健康管家</text>
+			<text class="title">宠物健康管理</text>
 			<text class="subtitle">科学养宠，陪伴你的每一天</text>
 		</view>
 

@@ -64,7 +64,10 @@
 		<view class="card-section menu-section">
 			<view class="menu-item" @click="goToSystemNotices">
 				<text class="menu-text">系统通知</text>
-				<text class="arrow">❯</text>
+				<view class="badge-wrapper">
+					<text class="badge" v-if="unreadNoticeCount > 0">{{ unreadNoticeCount }}</text>
+					<text class="arrow">❯</text>
+				</view>
 			</view>
 			<view class="menu-item" @click="goToFeedback">
 				<text class="menu-text">问题反馈</text>
@@ -91,6 +94,7 @@
 				allBreeds: [], // 👈 新增：用来存放所有的品种字典
 				stats: {
 					postCount: 0,
+					unreadNoticeCount: 0,
 					likeCount: 0
 				}
 			}
@@ -101,6 +105,7 @@
 			await this.loadBreeds(); // 第一步：拉取品种字典
 			this.getPetList(); // 第二步：拉取宠物列表并匹配名字
 			this.getUserStats();
+			this.getNoticesCount();
 		},
 		methods: {
 			getUserProfile() {
@@ -192,6 +197,36 @@
 
 				if (age < 0) return '刚出生';
 				return age > 0 ? age + '岁' : '不满1岁';
+			},
+			// 👈 新增：获取通知并计算未读数
+			getNoticesCount() {
+				const token = uni.getStorageSync('token');
+				if (!token) return;
+
+				uni.request({
+					url: 'http://localhost:8080/notifications/user/list',
+					method: 'GET',
+					header: {
+						'token': token
+					},
+					success: (res) => {
+						if (res.data.code === 200) {
+							const notices = res.data.data;
+							// 从本地缓存获取上次阅读到的最后一条通知的 ID（如果没有则默认为 0）
+							const lastReadId = uni.getStorageSync('lastReadNoticeId') || 0;
+
+							// 计算未读数：找出所有 ID 大于 lastReadId 的通知
+							this.unreadNoticeCount = notices.filter(n => n.noticeId > lastReadId).length;
+						}
+					}
+				});
+			},
+
+			// 修改跳转逻辑
+			goToSystemNotices() {
+				uni.navigateTo({
+					url: '/pages/user/system-notices'
+				});
 			},
 			editProfile() {
 				uni.navigateTo({
@@ -498,4 +533,14 @@
 		border-radius: 8rpx;
 		display: inline-block;
 	}
+	
+	.badge-wrapper { display: flex; align-items: center; }
+	.badge { 
+		background-color: #E85757; 
+		color: white; 
+		font-size: 22rpx; 
+		font-weight: bold; 
+		padding: 2rpx 12rpx; 
+		border-radius: 20rpx; 
+		margin-right: 10rpx; }
 </style>

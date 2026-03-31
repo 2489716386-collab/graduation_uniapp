@@ -54,6 +54,13 @@
 			"style": {
 				"navigationBarTitleText": "编辑个人资料"
 			}
+		},
+		{
+			"path": "pages/user/system-notices",
+			"style": {
+				"navigationBarTitleText": "系统通知",
+				"navigationBarBackgroundColor": "#FFFFFF"
+			}
 		}
 	],
 	"globalStyle": {
