@@ -52,15 +52,13 @@
 						</view>
 					</view>
 
-					<view class="view-btn">编辑 ></view>
+					<view class="view-btn">编辑 ❯</view>
 				</view>
 			</view>
 
-			<view class="view-btn">查看 ❯</view>
-		</view>
-
-		<view class="empty-state" v-else>
-			<text>还没有添加宠物哦，快去添加吧！</text>
+			<view class="empty-state" v-else>
+				<text>还没有添加宠物哦，快去添加吧！</text>
+			</view>
 		</view>
 
 		<view class="card-section menu-section">
@@ -90,15 +88,18 @@
 			return {
 				userInfo: {},
 				petList: [],
+				allBreeds: [], // 👈 新增：用来存放所有的品种字典
 				stats: {
 					postCount: 0,
 					likeCount: 0
 				}
 			}
 		},
-		onShow() {
+		// 👈 修改：改成 async 异步，确保先拿到字典，再渲染宠物列表
+		async onShow() {
 			this.getUserProfile();
-			this.getPetList();
+			await this.loadBreeds(); // 第一步：拉取品种字典
+			this.getPetList(); // 第二步：拉取宠物列表并匹配名字
 			this.getUserStats();
 		},
 		methods: {
@@ -127,21 +128,50 @@
 					}
 				});
 			},
+			// ================= 新增：获取品种字典 =================
+			loadBreeds() {
+				return new Promise((resolve) => {
+					uni.request({
+						url: 'http://localhost:8080/pet-breeds/list',
+						method: 'GET',
+						header: {
+							'token': uni.getStorageSync('token')
+						},
+						success: (res) => {
+							if (res.data.code === 200) {
+								this.allBreeds = res.data.data;
+							}
+							resolve(); // 请求完毕放行
+						},
+						fail: () => resolve()
+					});
+				});
+			},
+
+			// ================= 修改：获取宠物列表并匹配 =================
 			getPetList() {
 				const token = uni.getStorageSync('token');
 				if (!token) return;
 
 				uni.request({
-					// 确保这是你后端 PetsController 里的查询接口
 					url: 'http://localhost:8080/pets/user/list',
 					method: 'GET',
 					header: {
-						'token': token // 必须使用后端拦截器识别的 token 字段
+						'token': token
 					},
 					success: (res) => {
 						if (res.data.code === 200) {
-							// 将后端返回的数组赋值给页面变量
-							this.petList = res.data.data;
+							const rawPets = res.data.data;
+
+							// 【核心魔法】遍历后端返回的宠物列表，拿 breedId 去字典里找名字
+							this.petList = rawPets.map(pet => {
+								const breedObj = this.allBreeds.find(b => b.breedId === pet.breedId);
+								return {
+									...pet,
+									// 如果找到了就用真正的名字，如果没找到就兜底显示'未知品种'
+									breedName: breedObj ? breedObj.breedName : '未知品种'
+								};
+							});
 						}
 					}
 				});
@@ -446,26 +476,26 @@
 	.arrow.red {
 		color: #E85757;
 	}
-	
+
 	.pet-details {
-	    display: flex;
-	    align-items: center;
-	    font-size: 24rpx;
-	    color: #9AA0AF;
-	    margin-top: 8rpx;
-	    
-	    .dot {
-	        margin: 0 10rpx;
-	        font-weight: bold;
-	    }
+		display: flex;
+		align-items: center;
+		font-size: 24rpx;
+		color: #9AA0AF;
+		margin-top: 8rpx;
+
+		.dot {
+			margin: 0 10rpx;
+			font-weight: bold;
+		}
 	}
-	
+
 	.pet-breed {
-	    font-size: 22rpx;
-	    color: #4FA2FE;
-	    background-color: #F1F7FE;
-	    padding: 2rpx 12rpx;
-	    border-radius: 8rpx;
-	    display: inline-block;
+		font-size: 22rpx;
+		color: #4FA2FE;
+		background-color: #F1F7FE;
+		padding: 2rpx 12rpx;
+		border-radius: 8rpx;
+		display: inline-block;
 	}
 </style>
