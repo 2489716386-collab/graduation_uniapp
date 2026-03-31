@@ -222,12 +222,6 @@
 				});
 			},
 
-			// 修改跳转逻辑
-			goToSystemNotices() {
-				uni.navigateTo({
-					url: '/pages/user/system-notices'
-				});
-			},
 			editProfile() {
 				uni.navigateTo({
 					url: '/pages/user/profile-edit'
@@ -253,10 +247,13 @@
 				});
 			},
 			goToSystemNotices() {
-				uni.showToast({
-					title: '跳转到系统通知',
-					icon: 'none'
-				});
+			    console.log("正在跳转至系统通知页面..."); // 打印日志方便调试
+			    uni.navigateTo({
+			        url: '/pages/user/system-notices', // 直接写死字符串路径，确保万无一失
+			        fail: (err) => {
+			            console.error("跳转失败，请检查 pages.json 中是否注册了该页面", err);
+			        }
+			    });
 			},
 			goToFeedback() {
 				uni.navigateTo({
