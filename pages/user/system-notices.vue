@@ -41,10 +41,9 @@
 					header: { 'token': uni.getStorageSync('token') },
 					success: (res) => {
 						if (res.data.code === 200) {
-							this.noticeList = res.data.data;
+							// 【修复 1】防御性赋值，防止后端返回 null 导致后续报错
+							this.noticeList = res.data.data || [];
 							
-							// 【消灭小红点的核心魔法】
-							// 当用户点进这个页面时，把列表中最新的那个通知 ID 存起来
 							if (this.noticeList.length > 0) {
 								uni.setStorageSync('lastReadNoticeId', this.noticeList[0].noticeId);
 							}
@@ -52,10 +51,30 @@
 					}
 				});
 			},
-			formatDate(dateString) {
-				if (!dateString) return '';
-				// 简单的截取，把 2026-03-30T10:00:00 截成 03-30 10:00
-				return dateString.substring(5, 16).replace('T', ' '); 
+			
+			// 【修复 2】终极时间格式化方法：兼容数组和字符串两种后端格式
+			formatDate(dateData) {
+				if (!dateData) return '';
+				
+				// 情况 A：Spring Boot 将时间返回成了数组 [2026, 3, 30, 10, 30]
+				if (Array.isArray(dateData)) {
+					// 提取月、日、时、分，并保证两位数显示 (比如 3 变成 03)
+					const month = String(dateData[1] || 1).padStart(2, '0');
+					const day = String(dateData[2] || 1).padStart(2, '0');
+					const hour = String(dateData[3] || 0).padStart(2, '0');
+					const minute = String(dateData[4] || 0).padStart(2, '0');
+					return `${month}-${day} ${hour}:${minute}`;
+				}
+				
+				// 情况 B：如果后端返回的是 ISO 字符串 "2026-03-30T10:30:00"
+				if (typeof dateData === 'string') {
+					if (dateData.includes('T')) {
+						return dateData.substring(5, 16).replace('T', ' ');
+					}
+					return dateData;
+				}
+				
+				return String(dateData);
 			}
 		}
 	}

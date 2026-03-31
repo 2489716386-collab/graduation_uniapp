@@ -247,13 +247,13 @@
 				});
 			},
 			goToSystemNotices() {
-			    console.log("正在跳转至系统通知页面..."); // 打印日志方便调试
-			    uni.navigateTo({
-			        url: '/pages/user/system-notices', // 直接写死字符串路径，确保万无一失
-			        fail: (err) => {
-			            console.error("跳转失败，请检查 pages.json 中是否注册了该页面", err);
-			        }
-			    });
+				console.log("正在跳转至系统通知页面..."); // 打印日志方便调试
+				uni.navigateTo({
+					url: '/pages/user/system-notices', // 直接写死字符串路径，确保万无一失
+					fail: (err) => {
+						console.error("跳转失败，请检查 pages.json 中是否注册了该页面", err);
+					}
+				});
 			},
 			goToFeedback() {
 				uni.navigateTo({
@@ -265,17 +265,36 @@
 					url: '/pages/user/settings'
 				});
 			},
+			// 退出登录逻辑
 			logout() {
 				uni.showModal({
-					title: '提示',
-					content: '确定退出吗？',
+					title: '退出登录',
+					content: '确定要退出当前账号吗？',
+					confirmColor: '#E85757', // 给确定按钮加上警示的红色
 					success: (res) => {
 						if (res.confirm) {
+							// 1. 彻底清除本地缓存的敏感数据
 							uni.removeStorageSync('token');
+							// 如果你之前存了 userInfo 或 lastReadNoticeId，最好也一并清理，保持环境干净
+							uni.removeStorageSync('userInfo');
+							uni.removeStorageSync('lastReadNoticeId');
+
+							// 2. 提示用户
 							uni.showToast({
-								title: '已退出',
-								icon: 'success'
+								title: '已安全退出',
+								icon: 'success',
+								duration: 1000 // 提示停留 1 秒
 							});
+
+							// 3. 延迟 1 秒后，清空所有页面栈并跳转到登录页
+							setTimeout(() => {
+								uni.reLaunch({
+									url: '/pages/login/login',
+									fail: (err) => {
+										console.error('跳转登录页失败:', err);
+									}
+								});
+							}, 1000);
 						}
 					}
 				});
@@ -530,14 +549,19 @@
 		border-radius: 8rpx;
 		display: inline-block;
 	}
-	
-	.badge-wrapper { display: flex; align-items: center; }
-	.badge { 
-		background-color: #E85757; 
-		color: white; 
-		font-size: 22rpx; 
-		font-weight: bold; 
-		padding: 2rpx 12rpx; 
-		border-radius: 20rpx; 
-		margin-right: 10rpx; }
+
+	.badge-wrapper {
+		display: flex;
+		align-items: center;
+	}
+
+	.badge {
+		background-color: #E85757;
+		color: white;
+		font-size: 22rpx;
+		font-weight: bold;
+		padding: 2rpx 12rpx;
+		border-radius: 20rpx;
+		margin-right: 10rpx;
+	}
 </style>
