@@ -36,24 +36,31 @@
 
 			<view class="pet-list" v-if="petList.length > 0">
 				<view class="pet-list-item" v-for="pet in petList" :key="pet.petId" @click="goToPetEdit(pet.petId)">
-					<image class="pet-icon-square" :src="pet.avatar || '/static/tabbar/home.png'" mode="aspectFill">
+					<image class="pet-icon-square" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill">
 					</image>
 
 					<view class="pet-item-info">
 						<text class="pet-name">{{ pet.name }}</text>
-						<text class="pet-breed">哈士奇</text>
-						<text class="pet-details">
-							{{ calculateAge(pet.birthDate) }} | {{ pet.weight ? pet.weight + 'kg' : '体重未知' }}
-						</text>
+						<text class="pet-breed">{{ pet.breedName || '普通品种' }}</text>
+
+						<view class="pet-details">
+							<text>{{ calculateAge(pet.birthDate) }}</text>
+							<text class="dot">·</text>
+							<text>{{ pet.birthDate || '未知生日' }}</text>
+							<text class="dot">·</text>
+							<text>{{ pet.weight ? pet.weight + 'kg' : '暂无体重' }}</text>
+						</view>
 					</view>
 
-					<view class="view-btn">查看 ></view>
+					<view class="view-btn">编辑 ></view>
 				</view>
 			</view>
 
-			<view class="empty-state" v-else>
-				<text>还没有添加宠物哦，快去添加吧！</text>
-			</view>
+			<view class="view-btn">查看 ❯</view>
+		</view>
+
+		<view class="empty-state" v-else>
+			<text>还没有添加宠物哦，快去添加吧！</text>
 		</view>
 
 		<view class="card-section menu-section">
@@ -121,7 +128,23 @@
 				});
 			},
 			getPetList() {
-				/* ... 同前 ... */
+				const token = uni.getStorageSync('token');
+				if (!token) return;
+
+				uni.request({
+					// 确保这是你后端 PetsController 里的查询接口
+					url: 'http://localhost:8080/pets/user/list',
+					method: 'GET',
+					header: {
+						'token': token // 必须使用后端拦截器识别的 token 字段
+					},
+					success: (res) => {
+						if (res.data.code === 200) {
+							// 将后端返回的数组赋值给页面变量
+							this.petList = res.data.data;
+						}
+					}
+				});
 			},
 			getUserStats() {
 				this.stats = {
@@ -136,6 +159,8 @@
 				let age = now.getFullYear() - birth.getFullYear();
 				const m = now.getMonth() - birth.getMonth();
 				if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+
+				if (age < 0) return '刚出生';
 				return age > 0 ? age + '岁' : '不满1岁';
 			},
 			editProfile() {
@@ -420,5 +445,27 @@
 
 	.arrow.red {
 		color: #E85757;
+	}
+	
+	.pet-details {
+	    display: flex;
+	    align-items: center;
+	    font-size: 24rpx;
+	    color: #9AA0AF;
+	    margin-top: 8rpx;
+	    
+	    .dot {
+	        margin: 0 10rpx;
+	        font-weight: bold;
+	    }
+	}
+	
+	.pet-breed {
+	    font-size: 22rpx;
+	    color: #4FA2FE;
+	    background-color: #F1F7FE;
+	    padding: 2rpx 12rpx;
+	    border-radius: 8rpx;
+	    display: inline-block;
 	}
 </style>
