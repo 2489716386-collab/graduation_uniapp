@@ -62,6 +62,18 @@
 				"navigationBarTitleText": "系统通知",
 				"navigationBarBackgroundColor": "#FFFFFF"
 			}
+		},
+		{
+			"path": "pages/community/personal-center",
+			"style": {
+				"navigationBarTitleText": "个人主页"
+			}
+		},
+		{
+			"path": "pages/community/community-feed",
+			"style": {
+				"navigationBarTitleText": "社区动态"
+			}
 		}
 	],
 	"globalStyle": {
