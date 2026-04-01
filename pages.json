@@ -27,7 +27,8 @@
 		{
 			"path": "pages/community/community",
 			"style": {
-				"navigationBarTitleText": "社区发现"
+				"navigationBarTitleText": "社区发现",
+				"navigationStyle": "custom"
 			}
 		},
 		{
