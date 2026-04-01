@@ -10,11 +10,11 @@
 
 		<view v-else class="post-content">
 			<view class="author-header">
-				<image class="avatar" src="/static/default-avatar.png" mode="aspectFill"></image>
-				<view class="info">
-					<text class="nickname">用户_{{ post.userId }}</text>
-					<text class="time">{{ post.createTime }}</text>
-				</view>
+			    <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+			    <view class="info">
+			        <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
+			        <text class="time">{{ post.createTime }}</text>
+			    </view>
 			</view>
 
 			<view class="body-text">
@@ -236,6 +236,7 @@ export default {
 	padding: 0 30rpx;
 	box-sizing: border-box;
 	z-index: 99;
+	padding-bottom: env(safe-area-inset-bottom);
 }
 .comment-input-btn {
 	flex: 1;

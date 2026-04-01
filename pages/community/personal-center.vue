@@ -28,7 +28,7 @@
 			
       <view v-show="personalTab === 'posts'">
 				<view v-if="myPostList.length === 0" class="empty-state">你还没有发布过动态哦~</view>
-				<view class="post-card" v-for="(post, index) in myPostList" :key="'p'+index">
+				<view class="post-card" v-for="(post, index) in myPostList" :key="'p'+index" @click="goToDetail(post.postId)">
 					<view class="post-header">
 						<image class="avatar" :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
 						<view class="user-info">
@@ -51,7 +51,7 @@
 
       <view v-show="personalTab === 'likes'">
         <view v-if="myLikeList.length === 0" class="empty-state">还没有喜欢的动态~</view>
-				<view class="post-card" v-for="(post, index) in myLikeList" :key="'l'+index">
+        <view class="post-card" v-for="(post, index) in myLikeList" :key="'l'+index" @click="goToDetail(post.postId)">
 					<view class="post-header">
             <image class="avatar" src="/static/default-avatar.png" mode="aspectFill"></image>
 						<view class="user-info">
@@ -72,7 +72,7 @@
 
       <view v-show="personalTab === 'favorites'">
         <view v-if="myFavList.length === 0" class="empty-state">还没有收藏的动态~</view>
-        <view class="post-card" v-for="(post, index) in myPostList" :key="index" @click.stop="goToDetail(post.id || post.postId)">
+        <view class="post-card" v-for="(post, index) in myFavList" :key="'f'+index" @click="goToDetail(post.postId)">
 					<view class="post-header">
 						<image class="avatar" src="/static/default-avatar.png" mode="aspectFill"></image>
 						<view class="user-info">
@@ -109,8 +109,6 @@ export default {
 				signature: "登录后查看更多精彩内容~",
 				coverImage: "https://mp-aa1e3790-0b44-4bfc-afa7-9b9be364f376.cdn.bspapp.com/cloudstorage/f07035fc-384f-4743-b642-32109a13f0ff.jpg"
 			},
-			
-      // 分页列表数据集合
       myPostList: [],
 			myPostPage: 1,
       myLikeList: [],
@@ -126,7 +124,6 @@ export default {
 				this.isLoggedIn = true;
 				this.fetchUserInfo();
 				this.fetchMyPosts(true);
-        // 如果当前停留在其他Tab，刷新时一并更新
         if (this.personalTab === 'likes') this.fetchMyLikes(true);
         if (this.personalTab === 'favorites') this.fetchMyFavorites(true);
 			} else {
@@ -151,23 +148,17 @@ export default {
 		},
 		goToDetail(postId) {
 		    if (!postId) return;
-		    uni.navigateTo({
-		        url: `/pages/community/post-detail?id=${postId}`
-		    });
+		    uni.navigateTo({ url: `/pages/community/post-detail?id=${postId}` });
 		},
-
-    // 智能 Tab 切换，按需懒加载数据
     switchTab(tab) {
       this.personalTab = tab;
       if (!this.isLoggedIn) return;
-      
       if (tab === 'likes' && this.myLikeList.length === 0) {
         this.fetchMyLikes(true);
       } else if (tab === 'favorites' && this.myFavList.length === 0) {
         this.fetchMyFavorites(true);
       }
     },
-
 		handleAuthError(res) {
 			if (res.data.code === 401) {
 				uni.removeStorageSync('token');
@@ -178,7 +169,6 @@ export default {
 			}
 			return false;
 		},
-
 		fetchUserInfo() {
 			uni.request({
 				url: 'http://localhost:8080/users/user/profile',
@@ -198,8 +188,6 @@ export default {
 				}
 			});
 		},
-
-    // 通用的请求处理辅助方法
     processPostData(records) {
       const posts = records || [];
       posts.forEach(post => {
@@ -211,7 +199,6 @@ export default {
       });
       return posts;
     },
-
 		fetchMyPosts(isRefresh = false) {
 			if (isRefresh) { this.myPostPage = 1; this.myPostList = []; }
 			uni.request({
@@ -227,7 +214,6 @@ export default {
 				}
 			});
 		},
-
     fetchMyLikes(isRefresh = false) {
       if (isRefresh) { this.myLikePage = 1; this.myLikeList = []; }
 			uni.request({
@@ -243,7 +229,6 @@ export default {
 				}
 			});
     },
-
     fetchMyFavorites(isRefresh = false) {
       if (isRefresh) { this.myFavPage = 1; this.myFavList = []; }
 			uni.request({
@@ -259,9 +244,6 @@ export default {
 				}
 			});
     },
-
-    // ============= 个人列表中的反转操作 =============
-    // 在自己的“喜欢”列表里点击已赞，直接触发取消点赞，并把帖子移出当前列表
     toggleLikeInList(post, index, listArray) {
       uni.request({
         url: `http://localhost:8080/likes/toggle/${post.postId}`,
@@ -269,18 +251,14 @@ export default {
         header: { 'token': uni.getStorageSync('token') },
         success: (res) => {
           if (res.data.code === 200) {
-            // 如果后端返回 false，说明成功取消了点赞
             if (res.data.data === false) {
               uni.showToast({ title: '已取消点赞', icon: 'none' });
-              // 从前端数组中剔除，实现无刷新移除
               listArray.splice(index, 1);
             }
           }
         }
       });
     },
-
-    // 在“收藏”列表里点击已收藏，直接触发取消收藏
     toggleFavoriteInList(post, index, listArray) {
       uni.request({
         url: `http://localhost:8080/favorites/toggle/${post.postId}`,
@@ -296,7 +274,6 @@ export default {
         }
       });
     },
-
 		deleteMyPost(postId) {
 			uni.showModal({
 				title: '提示',
@@ -319,8 +296,6 @@ export default {
 				}
 			});
 		},
-    // ==========================================
-
 		changeCoverImage() {
 			if (!this.isLoggedIn) return uni.showToast({ title: '请先登录', icon: 'none' });
 			uni.chooseImage({
@@ -368,7 +343,6 @@ export default {
 </script>
 
 <style scoped>
-/* 保持原有样式不变 */
 .personal-wrapper { width: 100%; }
 .profile-header { position: relative; background-color: #FFFFFF; margin-bottom: 60rpx; }
 .cover-wrapper { position: relative; width: 100%; height: 400rpx; background-color: #f0f0f0; }
@@ -376,7 +350,8 @@ export default {
 .cover-tip { position: absolute; top: 30rpx; right: 30rpx; background-color: rgba(0, 0, 0, 0.4); color: #FFF; font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 20rpx; border: 1px solid rgba(255, 255, 255, 0.5); }
 .profile-user-info { position: absolute; right: 30rpx; bottom: -40rpx; display: flex; align-items: flex-end; }
 .profile-nickname { font-size: 36rpx; color: #FFFFFF; font-weight: bold; margin-right: 30rpx; text-shadow: 2rpx 2rpx 4rpx rgba(0, 0, 0, 0.6); margin-bottom: 40rpx; }
-.profile-avatar { width: 130rpx; height: 130rpx; border-radius: 16rpx; border: 4rpx solid #FFFFFF; box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.1); background-color: #EEE; }
+/* 修复：加上 flex-shrink: 0 */
+.profile-avatar { width: 130rpx; height: 130rpx; border-radius: 16rpx; border: 4rpx solid #FFFFFF; box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.1); background-color: #EEE; flex-shrink: 0; }
 .profile-bottom { background-color: #FFFFFF; padding: 0 30rpx 30rpx 30rpx; display: flex; justify-content: space-between; align-items: flex-start; }
 .signature { font-size: 26rpx; color: #666; flex: 1; margin-right: 20rpx; line-height: 1.5; }
 .notice-btn { font-size: 24rpx; background-color: #F5F5F5; color: #333; padding: 12rpx 24rpx; border-radius: 30rpx; position: relative; flex-shrink: 0; }
@@ -389,7 +364,8 @@ export default {
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; font-size: 28rpx; }
 .post-card { background-color: #FFFFFF; border-radius: 16rpx; padding: 30rpx; margin-bottom: 20rpx; }
 .post-header { display: flex; align-items: center; margin-bottom: 20rpx; }
-.avatar { width: 80rpx; height: 80rpx; border-radius: 50%; margin-right: 20rpx; background-color: #EEE; }
+/* 修复：加上 flex-shrink: 0 */
+.avatar { width: 80rpx; height: 80rpx; border-radius: 50%; margin-right: 20rpx; background-color: #EEE; flex-shrink: 0; }
 .user-info { display: flex; flex-direction: column; }
 .nickname { font-size: 30rpx; font-weight: bold; color: #333; }
 .time { font-size: 24rpx; color: #999; margin-top: 6rpx; }
