@@ -8,7 +8,7 @@
     </view>
 
     <view class="post-list">
-      <view class="post-card" v-for="(post, index) in postList" :key="index">
+      <view class="post-card" v-for="(post, index) in myPostList" :key="index" @click.stop="goToDetail(post.id || post.postId)">
         <view class="post-header">
           <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
           <view class="user-info">
@@ -25,14 +25,18 @@
         </view>
         
         <view class="post-footer">
-          <view class="action-btn" @click="toggleLike(post)">
-            <text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likes }}</text>
+          <view class="action-btn" @click.stop="toggleLike(post)">
+            <text :class="post.isLiked ? 'color-active' : 'color-normal'">
+              {{ post.isLiked ? '已赞' : '点赞' }} {{ post.likesCount || post.likes || 0 }}
+            </text>
           </view>
           <view class="action-btn">
-            <text class="color-normal">评论 {{ post.comments }}</text>
+            <text class="color-normal">评论 {{ post.commentsCount || post.comments || 0 }}</text>
           </view>
-          <view class="action-btn" @click="toggleFavorite(post)">
-            <text :class="post.isFavorited ? 'color-active' : 'color-normal'">{{ post.isFavorited ? '已收藏' : '收藏' }}</text>
+          <view class="action-btn" @click.stop="toggleFavorite(post)">
+            <text :class="post.isFavorited ? 'color-active' : 'color-normal'">
+              {{ post.isFavorited ? '已收藏' : '收藏' }}
+            </text>
           </view>
         </view>
       </view>
@@ -47,17 +51,17 @@ export default {
   data() {
     return {
       searchQuery: '',
-      // 模拟数据，后期可替换为后端请求
+      // 这里依然先放假数据供你预览，后期你可以用 fetchFeed 接口替换
       postList: [
         {
-          id: 1,
+          id: 1, // 模拟后端返回的 postId
           nickname: "铲屎官大本营",
           avatar: "",
           createTime: "10分钟前",
           content: "今天带着我家金毛去草坪玩飞盘啦，天气真好！大家周末都带毛孩子去哪里玩呀？",
           tags: ["金毛", "日常打卡"],
-          likes: 24,
-          comments: 5,
+          likesCount: 24,
+          commentsCount: 5,
           isLiked: false,
           isFavorited: true
         }
@@ -65,34 +69,102 @@ export default {
     };
   },
   methods: {
-    // 供父组件调用的触底加载方法
     loadMore() {
       console.log("CommunityFeed 触底加载...");
-      // TODO: 请求下一页数据
     },
-    // 供父组件调用的刷新方法
     refresh() {
       console.log("CommunityFeed 刷新数据...");
-      // TODO: 重新请求第一页数据
     },
     onSearch() {
       if (!this.searchQuery.trim()) return;
       uni.showToast({ title: '搜索: ' + this.searchQuery, icon: 'none' });
     },
+	goToDetail(postId) {
+	    if (!postId) return;
+	    uni.navigateTo({
+	        url: `/pages/community/post-detail?id=${postId}`
+	    });
+	},
+    
+    // ================== 点赞核心逻辑 ==================
     toggleLike(post) {
+      const token = uni.getStorageSync('token');
+      if (!token) {
+        return uni.showToast({ title: '请先登录', icon: 'none' });
+      }
+
+      // 1. 乐观 UI 更新（先变色和数字，不卡顿）
       post.isLiked = !post.isLiked;
-      post.likes += post.isLiked ? 1 : -1;
+      // 兼容后端字段 likesCount 和前端假数据 likes
+      if (post.likesCount !== undefined) {
+        post.likesCount += post.isLiked ? 1 : -1;
+      } else if (post.likes !== undefined) {
+        post.likes += post.isLiked ? 1 : -1;
+      }
+
+      // 2. 发起后端请求
+      const targetId = post.postId || post.id;
+      uni.request({
+        url: `http://localhost:8080/likes/toggle/${targetId}`,
+        method: 'POST',
+        header: { 'token': token },
+        success: (res) => {
+          if (res.data.code === 200) {
+            uni.showToast({ title: res.data.msg || (post.isLiked ? '点赞成功' : '取消点赞成功'), icon: 'none' });
+          } else {
+            // 失败时状态回滚
+            this.rollbackLike(post);
+            uni.showToast({ title: res.data.msg || '操作失败', icon: 'none' });
+          }
+        },
+        fail: () => {
+          this.rollbackLike(post);
+          uni.showToast({ title: '网络异常', icon: 'none' });
+        }
+      });
     },
+    rollbackLike(post) {
+      post.isLiked = !post.isLiked;
+      if (post.likesCount !== undefined) post.likesCount += post.isLiked ? 1 : -1;
+      else if (post.likes !== undefined) post.likes += post.isLiked ? 1 : -1;
+    },
+
+    // ================== 收藏核心逻辑 ==================
     toggleFavorite(post) {
+      const token = uni.getStorageSync('token');
+      if (!token) {
+        return uni.showToast({ title: '请先登录', icon: 'none' });
+      }
+
+      // 1. 乐观 UI 更新
       post.isFavorited = !post.isFavorited;
-      uni.showToast({ title: post.isFavorited ? '已收藏' : '取消收藏', icon: 'none' });
+
+      // 2. 发起后端请求
+      const targetId = post.postId || post.id;
+      uni.request({
+        url: `http://localhost:8080/favorites/toggle/${targetId}`,
+        method: 'POST',
+        header: { 'token': token },
+        success: (res) => {
+          if (res.data.code === 200) {
+            uni.showToast({ title: post.isFavorited ? '已收藏' : '已取消收藏', icon: 'none' });
+          } else {
+            post.isFavorited = !post.isFavorited; // 回滚
+            uni.showToast({ title: res.data.msg || '操作失败', icon: 'none' });
+          }
+        },
+        fail: () => {
+          post.isFavorited = !post.isFavorited; // 回滚
+          uni.showToast({ title: '网络异常', icon: 'none' });
+        }
+      });
     }
   }
 }
 </script>
 
 <style scoped>
-/* 这里的样式只对当前组件生效 */
+/* 保持原有样式不变 */
 .feed-wrapper { width: 100%; }
 .search-box { padding: 20rpx 30rpx; background-color: #FFFFFF; }
 .search-inner { display: flex; align-items: center; background-color: #F5F5F5; border-radius: 40rpx; padding: 12rpx 30rpx; height: 64rpx; }
