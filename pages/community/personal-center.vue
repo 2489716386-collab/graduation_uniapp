@@ -13,7 +13,10 @@
 
 		<view class="profile-bottom">
 			<view class="notice-btn" @click.stop="goToNotices">
-				消息通知 <text class="badge" v-if="unreadCount > 0">{{ unreadCount }}</text>
+			    消息通知 
+			    <text class="badge" v-if="unreadCount > 0">
+			        {{ unreadCount > 99 ? '99+' : unreadCount }}
+			    </text>
 			</view>
 			<text class="signature">{{ userInfo.signature }}</text>
 		</view>
@@ -212,6 +215,28 @@ export default {
       });
       return posts;
     },
+	fetchUnreadCount() {
+	    uni.request({
+	        url: 'http://localhost:8080/interaction-notifications/unread-count',
+	        method: 'GET',
+	        header: { 'token': uni.getStorageSync('token') },
+	        success: (res) => {
+	            if (res.data.code === 200) {
+	                this.unreadCount = res.data.data;
+	            }
+	        }
+	    });
+	},
+	// 在 refresh() 方法里调用它
+	refresh() {
+	    const token = uni.getStorageSync('token');
+	    if (token) {
+	        this.isLoggedIn = true;
+	        this.fetchUserInfo();
+	        this.fetchUnreadCount(); // 获取未读数
+	        // ...
+	    }
+	},
 		fetchMyPosts(isRefresh = false) {
 			if (isRefresh) { this.myPostPage = 1; this.myPostList = []; }
 			uni.request({
@@ -369,9 +394,15 @@ export default {
 			});
 		},
 		goToNotices() {
-			if (!this.isLoggedIn) return uni.navigateTo({ url: '/pages/login/login' });
-			uni.showToast({ title: '消息列表开发中...', icon: 'none' });
-		}
+					if (!this.isLoggedIn) {
+		                return uni.navigateTo({ url: '/pages/login/login' });
+		            }
+		            // 1. 跳转到真实的通知列表页面
+					uni.navigateTo({ url: '/pages/community/notices' });
+		            
+		            // 2. 【关键体验】点击的同时，前端立刻把未读红点清零，给用户“秒读”的快感
+		            this.unreadCount = 0;
+				}
 	}
 }
 </script>

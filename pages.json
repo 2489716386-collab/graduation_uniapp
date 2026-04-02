@@ -81,6 +81,13 @@
 				"navigationBarTitleText": "动态详情",
 				"enablePullDownRefresh": false
 			}
+		},
+		{
+			"path": "pages/community/notices",
+			"style": {
+				"navigationBarTitleText": "消息通知",
+				"enablePullDownRefresh": false
+			}
 		}
 	],
 	"globalStyle": {
