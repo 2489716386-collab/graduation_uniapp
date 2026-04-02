@@ -139,6 +139,7 @@ export default {
 			if (token) {
 				this.isLoggedIn = true;
 				this.fetchUserInfo();
+				this.fetchUnreadCount();
 				this.fetchMyPosts(true);
         if (this.personalTab === 'likes') this.fetchMyLikes(true);
         if (this.personalTab === 'favorites') this.fetchMyFavorites(true);
@@ -226,16 +227,6 @@ export default {
 	            }
 	        }
 	    });
-	},
-	// 在 refresh() 方法里调用它
-	refresh() {
-	    const token = uni.getStorageSync('token');
-	    if (token) {
-	        this.isLoggedIn = true;
-	        this.fetchUserInfo();
-	        this.fetchUnreadCount(); // 获取未读数
-	        // ...
-	    }
 	},
 		fetchMyPosts(isRefresh = false) {
 			if (isRefresh) { this.myPostPage = 1; this.myPostList = []; }
