@@ -12,10 +12,10 @@
 		</view>
 
 		<view class="profile-bottom">
-			<text class="signature">{{ userInfo.signature }}</text>
 			<view class="notice-btn" @click.stop="goToNotices">
 				消息通知 <text class="badge" v-if="unreadCount > 0">{{ unreadCount }}</text>
 			</view>
+			<text class="signature">{{ userInfo.signature }}</text>
 		</view>
 
 		<view class="personal-tabs">
@@ -40,8 +40,12 @@
 						<text class="content-text">{{ post.content }}</text>
 					</view>
 					<view class="post-footer">
-						<view class="action-btn"><text class="color-normal">点赞 {{ post.likesCount || 0 }}</text></view>
-						<view class="action-btn"><text class="color-normal">评论 {{ post.commentsCount || 0 }}</text></view>
+						<view class="action-btn" @click.stop="toggleLikeForMyPost(post)">
+							<text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount || post.likes || 0 }}</text>
+						</view>
+						<view class="action-btn">
+							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
+						</view>
 						<view class="action-btn" @click.stop="deleteMyPost(post.postId)">
 							<text style="color: #FF4D4F;">删除</text>
 						</view>
@@ -53,18 +57,21 @@
         <view v-if="myLikeList.length === 0" class="empty-state">还没有喜欢的动态~</view>
         <view class="post-card" v-for="(post, index) in myLikeList" :key="'l'+index" @click="goToDetail(post.postId)">
 					<view class="post-header">
-            <image class="avatar" src="/static/default-avatar.png" mode="aspectFill"></image>
-						<view class="user-info">
-							<text class="nickname">用户_{{ post.userId }}</text>
-							<text class="time">{{ post.createTime }}</text>
-						</view>
+					    <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+					    <view class="user-info">
+					        <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
+					        <text class="time">{{ post.createTime }}</text>
+					    </view>
 					</view>
 					<view class="post-body">
 						<text class="content-text">{{ post.content }}</text>
 					</view>
 					<view class="post-footer">
 						<view class="action-btn" @click.stop="toggleLikeInList(post, index, myLikeList)">
-							<text class="color-active">已赞 {{ post.likesCount || 0 }}</text>
+							<text class="color-active">已赞 {{ post.likeCount || post.likes || 0 }}</text>
+						</view>
+						<view class="action-btn">
+							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
 						</view>
 					</view>
 				</view>
@@ -74,16 +81,22 @@
         <view v-if="myFavList.length === 0" class="empty-state">还没有收藏的动态~</view>
         <view class="post-card" v-for="(post, index) in myFavList" :key="'f'+index" @click="goToDetail(post.postId)">
 					<view class="post-header">
-						<image class="avatar" src="/static/default-avatar.png" mode="aspectFill"></image>
-						<view class="user-info">
-							<text class="nickname">用户_{{ post.userId }}</text>
-							<text class="time">{{ post.createTime }}</text>
-						</view>
+					    <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+					    <view class="user-info">
+					        <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
+					        <text class="time">{{ post.createTime }}</text>
+					    </view>
 					</view>
 					<view class="post-body">
 						<text class="content-text">{{ post.content }}</text>
 					</view>
 					<view class="post-footer">
+						<view class="action-btn">
+							<text class="color-normal">点赞 {{ post.likeCount || post.likes || 0 }}</text>
+						</view>
+						<view class="action-btn">
+							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
+						</view>
 						<view class="action-btn" @click.stop="toggleFavoriteInList(post, index, myFavList)">
 							<text class="color-active">已收藏</text>
 						</view>
@@ -244,6 +257,27 @@ export default {
 				}
 			});
     },
+		// 新增：专属给“我的动态”列表使用的点赞逻辑
+		toggleLikeForMyPost(post) {
+			const token = uni.getStorageSync('token');
+			if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
+			uni.request({
+				url: `http://localhost:8080/likes/toggle/${post.postId || post.id}`,
+				method: 'POST',
+				header: { 'token': token },
+				success: (res) => {
+					if (res.data.code === 200) {
+						post.isLiked = res.data.data; // 后端返回 true/false
+						// 动态修改点赞数量
+						if (post.isLiked) {
+							post.likeCount = (post.likeCount || 0) + 1;
+						} else {
+							post.likeCount = Math.max(0, (post.likeCount || 0) - 1);
+						}
+					}
+				}
+			});
+		},
     toggleLikeInList(post, index, listArray) {
       uni.request({
         url: `http://localhost:8080/likes/toggle/${post.postId}`,
@@ -344,27 +378,35 @@ export default {
 
 <style scoped>
 .personal-wrapper { width: 100%; }
-.profile-header { position: relative; background-color: #FFFFFF; margin-bottom: 60rpx; }
+
+/* 优化：减小底部间距，让下方内容更靠近 */
+.profile-header { position: relative; background-color: #FFFFFF; margin-bottom: 40rpx; }
 .cover-wrapper { position: relative; width: 100%; height: 400rpx; background-color: #f0f0f0; }
 .cover-img { width: 100%; height: 100%; display: block; }
 .cover-tip { position: absolute; top: 30rpx; right: 30rpx; background-color: rgba(0, 0, 0, 0.4); color: #FFF; font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 20rpx; border: 1px solid rgba(255, 255, 255, 0.5); }
 .profile-user-info { position: absolute; right: 30rpx; bottom: -40rpx; display: flex; align-items: flex-end; }
 .profile-nickname { font-size: 36rpx; color: #FFFFFF; font-weight: bold; margin-right: 30rpx; text-shadow: 2rpx 2rpx 4rpx rgba(0, 0, 0, 0.6); margin-bottom: 40rpx; }
-/* 修复：加上 flex-shrink: 0 */
 .profile-avatar { width: 130rpx; height: 130rpx; border-radius: 16rpx; border: 4rpx solid #FFFFFF; box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.1); background-color: #EEE; flex-shrink: 0; }
-.profile-bottom { background-color: #FFFFFF; padding: 0 30rpx 30rpx 30rpx; display: flex; justify-content: space-between; align-items: flex-start; }
-.signature { font-size: 26rpx; color: #666; flex: 1; margin-right: 20rpx; line-height: 1.5; }
+
+/* 优化：垂直居中对齐，缩减底部内边距 */
+.profile-bottom { background-color: #FFFFFF; padding: 0 30rpx 10rpx 30rpx; display: flex; justify-content: space-between; align-items: center; }
+
+/* 优化：修改左右边距，并将文字靠右，与头像形成视觉呼应 */
+.signature { font-size: 26rpx; color: #666; flex: 1; margin-left: 20rpx; text-align: right; line-height: 1.5; }
+
 .notice-btn { font-size: 24rpx; background-color: #F5F5F5; color: #333; padding: 12rpx 24rpx; border-radius: 30rpx; position: relative; flex-shrink: 0; }
 .badge { position: absolute; top: -8rpx; right: -8rpx; background-color: #FF4D4F; color: #FFF; font-size: 20rpx; padding: 2rpx 10rpx; border-radius: 20rpx; }
-.personal-tabs { display: flex; background-color: #FFFFFF; border-bottom: 2rpx solid #F5F5F5; margin-top: 20rpx; }
+
+/* 优化：去掉了 margin-top 让 Tab 栏紧贴着上方信息 */
+.personal-tabs { display: flex; background-color: #FFFFFF; border-bottom: 2rpx solid #F5F5F5; margin-top: 0; }
 .p-tab { flex: 1; text-align: center; font-size: 28rpx; color: #666; padding: 24rpx 0; position: relative; }
 .p-tab.active { color: #333; font-weight: bold; }
 .p-tab.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40rpx; height: 6rpx; background-color: #42b983; border-radius: 4rpx; }
+
 .personal-list { padding: 20rpx; }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; font-size: 28rpx; }
 .post-card { background-color: #FFFFFF; border-radius: 16rpx; padding: 30rpx; margin-bottom: 20rpx; }
 .post-header { display: flex; align-items: center; margin-bottom: 20rpx; }
-/* 修复：加上 flex-shrink: 0 */
 .avatar { width: 80rpx; height: 80rpx; border-radius: 50%; margin-right: 20rpx; background-color: #EEE; flex-shrink: 0; }
 .user-info { display: flex; flex-direction: column; }
 .nickname { font-size: 30rpx; font-weight: bold; color: #333; }

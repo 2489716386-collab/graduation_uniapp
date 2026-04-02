@@ -26,10 +26,10 @@
         
         <view class="post-footer">
           <view class="action-btn" @click.stop="toggleLike(post)">
-            <text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likesCount || post.likes || 0 }}</text>
+            <text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount || post.likes || 0 }}</text>
           </view>
           <view class="action-btn">
-            <text class="color-normal">评论 {{ post.commentsCount || post.comments || 0 }}</text>
+            <text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
           </view>
           <view class="action-btn" @click.stop="toggleFavorite(post)">
             <text :class="post.isFavorited ? 'color-active' : 'color-normal'">{{ post.isFavorited ? '已收藏' : '收藏' }}</text>
@@ -55,8 +55,8 @@ export default {
           createTime: "10分钟前",
           content: "今天带着我家金毛去草坪玩飞盘啦，天气真好！大家周末都带毛孩子去哪里玩呀？",
           tags: ["金毛", "日常打卡"],
-          likesCount: 24,
-          commentsCount: 5,
+          commentCount: 24,
+          commentCount: 5,
           isLiked: false,
           isFavorited: true
         }
@@ -79,7 +79,7 @@ export default {
       if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
 
       post.isLiked = !post.isLiked;
-      if (post.likesCount !== undefined) post.likesCount += post.isLiked ? 1 : -1;
+      if (post.lcommentCount== undefined) post.likeCount +=post.isLiked ? 1 : -1;
       else if (post.likes !== undefined) post.likes += post.isLiked ? 1 : -1;
 
       const targetId = post.postId || post.id;
@@ -100,7 +100,7 @@ export default {
     },
     rollbackLike(post) {
       post.isLiked = !post.isLiked;
-      if (post.likesCount !== undefined) post.likesCount += post.isLiked ? 1 : -1;
+      if (post.likcommentCount !== undefined) post.likecommentCountost.isLiked ? 1 : -1;
       else if (post.likes !== undefined) post.likes += post.isLiked ? 1 : -1;
     },
     toggleFavorite(post) {
