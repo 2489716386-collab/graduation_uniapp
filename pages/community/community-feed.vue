@@ -16,7 +16,7 @@
 				<view class="post-header">
 					<image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
 					<view class="user-info">
-						<text class="nickname">{{ post.nickname }}</text>
+						<text class="nickname">{{ post.nickname || '神秘宠友'}}</text>
 						<text class="time">{{ post.createTime }}</text>
 					</view>
 					<view class="recommend-badge" v-if="post.recommendScore && post.recommendScore > 0">

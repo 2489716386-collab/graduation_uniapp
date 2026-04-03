@@ -218,7 +218,7 @@ export default {
     },
 	fetchUnreadCount() {
 	    uni.request({
-	        url: 'http://localhost:8080/interaction-notifications/unread-count',
+	        url: 'http://localhost:8080/interaction-notices/unread-count',
 	        method: 'GET',
 	        header: { 'token': uni.getStorageSync('token') },
 	        success: (res) => {
