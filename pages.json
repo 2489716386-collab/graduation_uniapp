@@ -88,6 +88,18 @@
 				"navigationBarTitleText": "消息通知",
 				"enablePullDownRefresh": false
 			}
+		},
+		{
+			"path": "pages/community/dynamic/search",
+			"style": {
+				"navigationBarTitleText": "搜索动态"
+			}
+		},
+		{
+			"path": "pages/community/dynamic/add-post",
+			"style": {
+				"navigationBarTitleText": "发布动态"
+			}
 		}
 	],
 	"globalStyle": {

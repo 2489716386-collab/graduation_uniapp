@@ -30,6 +30,12 @@ export default {
     };
   },
   onShow() {
+	  const switchTabTo = uni.getStorageSync('switchCommunityTab');
+	      if (switchTabTo) {
+	        this.currentMainTab = switchTabTo;
+	        // 读完就删掉，避免下次进页面乱跳
+	        uni.removeStorageSync('switchCommunityTab'); 
+	      }
     // 页面显示时，通知当前激活的子组件刷新数据
     this.$nextTick(() => {
       if (this.currentMainTab === 'community' && this.$refs.feedRef) {

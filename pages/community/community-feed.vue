@@ -1,9 +1,12 @@
 <template>
   <view class="feed-wrapper">
     <view class="search-box">
-      <view class="search-inner">
-        <text class="search-icon">🔍</text>
-        <input class="search-input" type="text" v-model="searchQuery" placeholder="搜索宠物日常、经验、问答..." @confirm="onSearch" />
+      <view class="search-inner" @click="goToSearch">
+        <text class="search-placeholder">搜索宠物日常、经验、问答...</text>
+        <view class="search-confirm-btn">
+          <text class="search-icon">🔍</text>
+          <text class="search-text">搜索</text>
+        </view>
       </view>
     </view>
 
@@ -38,6 +41,10 @@
       </view>
       <view class="loading-tip">没有更多动态啦~</view>
     </view>
+
+    <view class="add-post-btn" @click="goToAddPost">
+      <text class="add-icon">+</text>
+    </view>
   </view>
 </template>
 
@@ -46,7 +53,6 @@ export default {
   name: "CommunityFeed",
   data() {
     return {
-      searchQuery: '',
       postList: [
         {
           id: 1, 
@@ -55,8 +61,8 @@ export default {
           createTime: "10分钟前",
           content: "今天带着我家金毛去草坪玩飞盘啦，天气真好！大家周末都带毛孩子去哪里玩呀？",
           tags: ["金毛", "日常打卡"],
-          commentCount: 24,
           commentCount: 5,
+          likeCount: 24,
           isLiked: false,
           isFavorited: true
         }
@@ -66,65 +72,57 @@ export default {
   methods: {
     loadMore() { console.log("CommunityFeed 触底加载..."); },
     refresh() { console.log("CommunityFeed 刷新数据..."); },
-    onSearch() {
-      if (!this.searchQuery.trim()) return;
-      uni.showToast({ title: '搜索: ' + this.searchQuery, icon: 'none' });
+    
+    // 跳转到搜索结果界面（通常先进入搜索页进行输入）
+    goToSearch() {
+      uni.navigateTo({ url: '/pages/community/dynamic/search' });
     },
+
+    goToAddPost() {
+      const token = uni.getStorageSync('token');
+      if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
+      uni.navigateTo({ url: '/pages/community/dynamic/add-post' });
+    },
+
     goToDetail(postId) {
         if (!postId) return;
         uni.navigateTo({ url: `/pages/community/post-detail?id=${postId}` });
     },
+
     toggleLike(post) {
       const token = uni.getStorageSync('token');
       if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
-
       post.isLiked = !post.isLiked;
-      if (post.lcommentCount== undefined) post.likeCount +=post.isLiked ? 1 : -1;
-      else if (post.likes !== undefined) post.likes += post.isLiked ? 1 : -1;
-
+      if (post.likeCount !== undefined) post.likeCount += post.isLiked ? 1 : -1;
       const targetId = post.postId || post.id;
       uni.request({
         url: `http://localhost:8080/likes/toggle/${targetId}`,
         method: 'POST',
         header: { 'token': token },
         success: (res) => {
-          if (res.data.code === 200) {
-            uni.showToast({ title: res.data.msg || (post.isLiked ? '点赞成功' : '取消点赞成功'), icon: 'none' });
-          } else {
-            this.rollbackLike(post);
-            uni.showToast({ title: res.data.msg || '操作失败', icon: 'none' });
-          }
+          if (res.data.code !== 200) this.rollbackLike(post);
         },
-        fail: () => { this.rollbackLike(post); uni.showToast({ title: '网络异常', icon: 'none' }); }
+        fail: () => this.rollbackLike(post)
       });
     },
+
     rollbackLike(post) {
       post.isLiked = !post.isLiked;
-      if (post.likcommentCount !== undefined) post.likecommentCountost.isLiked ? 1 : -1;
-      else if (post.likes !== undefined) post.likes += post.isLiked ? 1 : -1;
+      if (post.likeCount !== undefined) post.likeCount += post.isLiked ? 1 : -1;
     },
+
     toggleFavorite(post) {
       const token = uni.getStorageSync('token');
       if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
-
       post.isFavorited = !post.isFavorited;
-      const targetId = post.postId || post.id;
       uni.request({
-        url: `http://localhost:8080/favorites/toggle/${targetId}`,
+        url: `http://localhost:8080/favorites/toggle/${post.postId || post.id}`,
         method: 'POST',
         header: { 'token': token },
         success: (res) => {
-          if (res.data.code === 200) {
-            uni.showToast({ title: post.isFavorited ? '已收藏' : '已取消收藏', icon: 'none' });
-          } else {
-            post.isFavorited = !post.isFavorited; 
-            uni.showToast({ title: res.data.msg || '操作失败', icon: 'none' });
-          }
+          if (res.data.code !== 200) post.isFavorited = !post.isFavorited;
         },
-        fail: () => {
-          post.isFavorited = !post.isFavorited; 
-          uni.showToast({ title: '网络异常', icon: 'none' });
-        }
+        fail: () => post.isFavorited = !post.isFavorited
       });
     }
   }
@@ -132,15 +130,52 @@ export default {
 </script>
 
 <style scoped>
-.feed-wrapper { width: 100%; }
-.search-box { padding: 20rpx 30rpx; background-color: #FFFFFF; }
-.search-inner { display: flex; align-items: center; background-color: #F5F5F5; border-radius: 40rpx; padding: 12rpx 30rpx; height: 64rpx; }
-.search-icon { font-size: 28rpx; margin-right: 16rpx; }
-.search-input { flex: 1; font-size: 28rpx; }
+.feed-wrapper { width: 100%; position: relative; }
+
+/* 搜索栏样式改造 */
+.search-box { 
+  padding: 20rpx 30rpx; 
+  background-color: #FFFFFF; 
+}
+.search-inner { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; /* 确保内容两端分布 */
+  background-color: #F5F5F5; 
+  border-radius: 40rpx; 
+  padding: 0 0 0 30rpx; /* 左侧留出文字间距 */
+  height: 72rpx; 
+  overflow: hidden;
+}
+.search-placeholder { 
+  font-size: 26rpx; 
+  color: #999; 
+}
+.search-confirm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #42b983; /* 使用主题绿 */
+  height: 100%;
+  padding: 0 30rpx;
+  transition: opacity 0.2s;
+}
+.search-confirm-btn:active {
+  opacity: 0.8;
+}
+.search-icon { 
+  font-size: 28rpx; 
+  margin-right: 8rpx; 
+}
+.search-text {
+  font-size: 26rpx;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
 .post-list { padding: 20rpx; }
 .post-card { background-color: #FFFFFF; border-radius: 16rpx; padding: 30rpx; margin-bottom: 20rpx; }
 .post-header { display: flex; align-items: center; margin-bottom: 20rpx; }
-/* 修复：加上 flex-shrink: 0 避免长昵称导致头像变形 */
 .avatar { width: 80rpx; height: 80rpx; border-radius: 50%; margin-right: 20rpx; background-color: #EEE; flex-shrink: 0; }
 .user-info { display: flex; flex-direction: column; }
 .nickname { font-size: 30rpx; font-weight: bold; color: #333; }
@@ -153,4 +188,26 @@ export default {
 .color-normal { color: #666; }
 .color-active { color: #42b983; font-weight: bold; }
 .loading-tip { text-align: center; font-size: 24rpx; color: #999; padding: 30rpx 0; }
+
+/* 悬浮发布按钮 */
+.add-post-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 180rpx; 
+  width: 100rpx;
+  height: 100rpx;
+  background-color: #42b983;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4rpx 16rpx rgba(66, 185, 131, 0.4);
+  z-index: 99;
+}
+.add-icon {
+  color: #FFFFFF;
+  font-size: 60rpx;
+  font-weight: 300;
+  line-height: 1;
+}
 </style>
