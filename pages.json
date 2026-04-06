@@ -104,7 +104,7 @@
 		{
 			"path": "pages/plan/generate",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "更新养护计划"
 			}
 		},
 		{

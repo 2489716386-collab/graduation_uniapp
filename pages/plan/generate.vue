@@ -1,188 +1,335 @@
 <template>
-  <view class="container">
-    
-    <view v-if="step === 1" class="step-form">
-      <view class="title">核对宠物信息</view>
-      <view class="form-group">
-        <view class="label">品种 (可修改)</view>
-        <input class="input" v-model="formData.breed" placeholder="例如: 金毛" />
-      </view>
-      <view class="form-group">
-        <view class="label">年龄 (岁)</view>
-        <input class="input" type="number" v-model="formData.age" />
-      </view>
-      <view class="form-group">
-        <view class="label">体重 (kg)</view>
-        <input class="input" type="digit" v-model="formData.weight" />
-      </view>
-      <view class="form-group">
-        <view class="label">健康状况描述</view>
-        <textarea class="textarea" v-model="formData.healthStatus" placeholder="请描述宠物目前的健康状况，例如：肠胃不好、有泪痕等"></textarea>
-      </view>
-      
-      <view class="ocr-upload" @click="uploadReport">
-        <text class="icon">📄</text>
-        <text>上传体检报告自动提取异常指标 (推荐)</text>
-      </view>
+	<view class="container" :class="{'bg-white': step === 2 || step === 3}">
+		
+		<view v-if="step === 1" class="step-form fade-in">
+			<view class="section card">
+				<view class="section-title">宠物基础资料</view>
+				<view class="info-row">
+					<text class="label">宠物品种</text>
+					<text class="value readonly">{{ petInfo.breedName }}</text>
+				</view>
+				<view class="info-row">
+					<text class="label">当前年龄</text>
+					<text class="value readonly">{{ petInfo.age }} 岁</text>
+				</view>
+				<view class="info-row">
+					<text class="label">体重 (kg)</text>
+					<input class="value editable" type="digit" v-model="formData.weight" placeholder="输入当前体重" />
+				</view>
+				<view class="tip">* 更改体重将自动同步到宠物档案</view>
+			</view>
 
-      <button class="submit-btn" @click="startGenerate">提交生成计划</button>
-    </view>
+			<view class="section card">
+				<view class="section-title">健康现状描述</view>
+				<textarea 
+					class="health-input" 
+					v-model="formData.healthStatus" 
+					placeholder="请描述宠物的近况（如：胃口好、不喜欢动、正在掉毛等），AI将据此调整计划..."
+					maxlength="200"
+				></textarea>
+				
+				<view class="upload-area">
+					<view class="upload-title">上传体检报告 (可选)</view>
+					<view class="upload-box" @click="chooseImage">
+						<image v-if="formData.reportImg" :src="formData.reportImg" mode="aspectFill"></image>
+						<view v-else class="upload-placeholder">
+							<text class="plus">+</text>
+							<text>点此上传</text>
+						</view>
+					</view>
+				</view>
+			</view>
 
-    <view v-if="step === 2" class="step-loading">
-      <view class="loading-spinner"></view>
-      <view class="loading-text">🐾 AI 正在化身专业兽医...</view>
-      <view class="loading-subtext">正在为您定制专属养护计划，预计需要 5-8 秒</view>
-    </view>
+			<view class="bottom-bar">
+				<button class="gen-btn" @click="startGenerate">提交并生成专属计划</button>
+			</view>
+		</view>
 
-    <view v-if="step === 3" class="step-preview">
-      <view class="title">计划预览</view>
-      
-      <scroll-view scroll-y class="preview-box">
-        <view class="focus-alert">💡 本周重点：{{ generatedPlan.weekly_focus }}</view>
-        <view v-for="(task, index) in generatedPlan.daily_tasks" :key="index" class="preview-task">
-          <text class="tag">{{ task.category }}</text>
-          <text class="desc">{{ task.content }}</text>
-        </view>
-      </scroll-view>
 
-      <view class="feedback-area">
-        <text class="label">不满意？告诉 AI 您的修改意见：</text>
-        <view class="feedback-input-box">
-          <input class="input" v-model="feedbackText" placeholder="例如：我家狗对鸡肉过敏" />
-          <button class="btn-regenerate" @click="regeneratePlan">重新生成</button>
-        </view>
-      </view>
+		<view v-if="step === 2" class="step-loading fade-in">
+			<view class="loading-content">
+				<view class="paw-icon">🐾</view>
+				<text class="loading-title">AI 正在为您定制专属计划</text>
+				<text class="loading-subtext">{{ currentLoadingText }}</text>
+				
+				<view class="progress-bar">
+					<view class="progress-inner"></view>
+				</view>
+			</view>
+		</view>
 
-      <button class="submit-btn" @click="confirmImport">确定导入本周计划</button>
-    </view>
 
-  </view>
+		<view v-if="step === 3" class="step-preview fade-in">
+			<view class="preview-header">
+				<text class="icon">✨</text>
+				<text class="title">本周专属养护方案已生成</text>
+			</view>
+
+			<scroll-view scroll-y="true" class="preview-body">
+				<view class="ai-card">
+					<rich-text :nodes="formattedAiResult"></rich-text>
+				</view>
+				<view class="disclaimer">
+					* 免责声明：此计划由 AI 结合您的宠物资料及兽医学知识库生成，仅供日常养护参考。如宠物出现明显不适，请及时就医。
+				</view>
+			</scroll-view>
+
+			<view class="bottom-action-bar">
+				<button class="btn-outline" @click="reGenerate">重新生成</button>
+				<button class="btn-primary" @click="handleConfirmImport">确认并导入计划</button>
+			</view>
+		</view>
+
+	</view>
 </template>
 
 <script>
 export default {
-  data() {
-    return {
-      step: 1, // 控制当前显示的步骤：1表单，2加载，3预览
-      petId: null,
-      formData: {
-        breed: '', age: '', weight: '', healthStatus: ''
-      },
-      feedbackText: '', // 用户的重生成要求
-      generatedPlan: {} // 存放 AI 吐出的 JSON 结果
-    };
-  },
-  onLoad(options) {
-    this.petId = options.petId;
-    // TODO: 调用后端接口，获取该宠物当前资料，填充到 formData 中
-    this.formData = { breed: '金毛', age: 3, weight: 25, healthStatus: '' };
-  },
-  methods: {
-    // 触发 OCR
-    uploadReport() {
-      uni.chooseImage({
-        count: 1,
-        success: (res) => {
-          const tempFilePath = res.tempFilePaths[0];
-          uni.showLoading({ title: '报告解析中...' });
-          // TODO: 将图片上传到 uniCloud 或后端调用百度/阿里 OCR 接口
-          setTimeout(() => {
-            uni.hideLoading();
-            // 模拟 OCR 提取成功，自动填入健康状况
-            this.formData.healthStatus += " [体检异常指标]：白细胞偏高，肝功能轻微异常。";
-            uni.showToast({ title: '提取成功', icon: 'success' });
-          }, 1500);
-        }
-      });
-    },
+	data() {
+		return {
+			step: 1, // 页面状态机：1-填表, 2-Loading, 3-预览
+			petId: null,
+			petInfo: {},
+			formData: {
+				weight: '',
+				healthStatus: '',
+				reportImg: ''
+			},
+			aiRawResult: '', 
+			
+			// Loading 状态相关的动画数据
+			loadingTexts: [
+				'正在分析宠物身体数据...', 
+				'正在检索兽医学专业知识库...', 
+				'正在匹配饮食与运动建议...', 
+				'正在生成每日打卡任务...', 
+				'即将完成，请稍候...'
+			],
+			currentLoadingText: '正在连接 AI 大脑...',
+			loadingTimer: null
+		};
+	},
+	onLoad(options) {
+		const id = options.petid || options.petId;
+		if (id && id !== 'undefined' && id !== 'null') {
+			this.petId = id;
+			this.fetchPetDetail();
+		}
+	},
+	computed: {
+		formattedAiResult() {
+			if (!this.aiRawResult) return '';
+			try {
+				const data = JSON.parse(this.aiRawResult);
+				// 提取并美化显示 AI 的 JSON 结构
+				let html = `<div style="line-height: 1.8; color: #333;">`;
+				html += `<div style="font-size: 15px; font-weight: bold; color: #007AFF; margin-bottom: 10px;">🎯 本周养护重点</div>`;
+				html += `<div style="background: #f0f7ff; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">${data.weekly_focus}</div>`;
+				
+				html += `<div style="font-size: 15px; font-weight: bold; color: #007AFF; margin-bottom: 10px;">📅 每日打卡任务概览</div>`;
+				html += `<ul style="padding-left: 20px; font-size: 14px; color: #555;">`;
+				data.daily_tasks.forEach(t => {
+					html += `<li style="margin-bottom: 8px;"><b>[${t.category}]</b> ${t.content}</li>`;
+				});
+				html += `</ul></div>`;
+				return html;
+			} catch (e) {
+				return `<div style="color: #666;">${this.aiRawResult}</div>`;
+			}
+		}
+	},
+	methods: {
+		async fetchPetDetail() {
+			const res = await uni.request({
+				url: `http://localhost:8080/pets/${this.petId}`,
+				method: 'GET',
+				header: { 'token': uni.getStorageSync('token') }
+			});
+			if (res.data.code === 200) {
+				this.petInfo = res.data.data;
+				this.formData.weight = this.petInfo.weight;
+				this.formData.healthStatus = this.petInfo.healthStatus || '';
+			}
+		},
 
-    // 提交生成
-    startGenerate() {
-      if (!this.formData.breed) return uni.showToast({ title: '请填写品种', icon: 'none' });
-      
-      this.step = 2; // 切换到 Loading 页面
-      
-      // TODO: 调用后端 AI 生成接口 (Spring Boot 调用大模型)
-      // 模拟接口请求等待 3 秒
-      setTimeout(() => {
-        // 模拟 AI 返回的 JSON 数据
-        this.generatedPlan = {
-          weekly_focus: "关注肝脏健康，本周需清淡饮食并增加饮水。",
-          daily_tasks: [
-            { category: "饮食", content: "早晚各喂食定制处方粮，禁止喂食含鸡肉零食。" },
-            { category: "运动", content: "散步时间控制在20分钟内，避免剧烈奔跑。" },
-            { category: "医疗", content: "喂食保肝药物一次。" }
-          ]
-        };
-        this.step = 3; // 切换到预览页面
-      }, 3000);
-    },
+		chooseImage() {
+			uni.chooseImage({
+				count: 1,
+				success: (res) => { this.formData.reportImg = res.tempFilePaths[0]; }
+			});
+		},
 
-    // 带反馈的重新生成
-    regeneratePlan() {
-      if (!this.feedbackText) return uni.showToast({ title: '请输入修改意见', icon: 'none' });
-      
-      this.step = 2; // 再次切换回 Loading 页面
-      
-      // TODO: 携带 this.feedbackText 再次调用 AI 接口
-      setTimeout(() => {
-        // 模拟根据反馈修改后的数据
-        this.generatedPlan.daily_tasks[0].content = "已将零食替换为鸭肉冻干。早晚各喂食处方粮。";
-        this.feedbackText = ''; // 清空输入框
-        this.step = 3; // 回到预览
-      }, 3000);
-    },
+		// 触发生成，进入 Loading 态
+		startGenerate() {
+			if (!this.formData.weight) {
+				return uni.showToast({ title: '请填写宠物体重', icon: 'none' });
+			}
+			
+			// 1. 切换到 Loading 页面
+			this.step = 2;
+			
+			// 2. 开启文案轮播动画
+			let textIndex = 0;
+			this.currentLoadingText = this.loadingTexts[0];
+			this.loadingTimer = setInterval(() => {
+				textIndex++;
+				if (textIndex < this.loadingTexts.length) {
+					this.currentLoadingText = this.loadingTexts[textIndex];
+				}
+			}, 1500); // 每 1.5 秒换一句话
 
-    // 最终确认导入
-    confirmImport() {
-      uni.showLoading({ title: '保存中...' });
-      // TODO: 调用后端接口，将 formData（更新宠物信息）和 generatedPlan（保存为周计划和每日任务）存入数据库
-      setTimeout(() => {
-        uni.hideLoading();
-        uni.showToast({ title: '计划已更新！', icon: 'success' });
-        // 保存成功，返回详情页
-        setTimeout(() => {
-          uni.navigateBack();
-        }, 1500);
-      }, 1000);
-    }
-  }
+			// 3. 发起真实的后端 AI 请求
+			this.callAiApi();
+		},
+
+		async callAiApi() {
+			try {
+				const res = await uni.request({
+					url: 'http://localhost:8080/care-plans-week/generate-preview',
+					method: 'POST',
+					header: { 'token': uni.getStorageSync('token') },
+					data: {
+						petId: this.petId,
+						weight: this.formData.weight,
+						healthStatus: this.formData.healthStatus
+					}
+				});
+
+				if (res.data.code === 200) {
+					this.aiRawResult = res.data.data;
+					// 请求成功，切换到预览页
+					setTimeout(() => { this.step = 3; }, 500); // 稍微延迟一点，让动画更顺滑
+				} else {
+					throw new Error(res.data.msg);
+				}
+			} catch (e) {
+				uni.showToast({ title: 'AI生成失败，请重试', icon: 'none' });
+				this.step = 1; // 失败则退回表单页
+			} finally {
+				clearInterval(this.loadingTimer); // 清除定时器
+			}
+		},
+
+		// 不满意，重新生成
+		reGenerate() {
+			// 直接返回 Loading 态，并重新调用接口
+			this.startGenerate(); 
+			// 如果你想让用户退回表单重新修改描述，可以改为 this.step = 1;
+		},
+
+		// 确认导入
+		async handleConfirmImport() {
+			uni.showLoading({ title: '正在保存任务...' });
+			try {
+				const res = await uni.request({
+					url: 'http://localhost:8080/care-plans-week/confirm-import',
+					method: 'POST',
+					header: { 'token': uni.getStorageSync('token') },
+					data: {
+						snapshot: {
+							petId: this.petId,
+							weight: this.formData.weight,
+							age: this.petInfo.age,
+							healthStatus: this.formData.healthStatus
+						},
+						aiResultJson: this.aiRawResult
+					}
+				});
+
+				if (res.data.code === 200) {
+					uni.showToast({ title: '计划导入成功', icon: 'success' });
+					setTimeout(() => {
+						// 成功后跳转回历史详情页
+						uni.redirectTo({ url: `/pages/plan/detail?petid=${this.petId}` });
+					}, 1500);
+				}
+			} catch (e) {
+				uni.showToast({ title: '导入失败', icon: 'none' });
+			} finally {
+				uni.hideLoading();
+			}
+		}
+	}
 }
 </script>
 
 <style lang="scss">
-.container { padding: 20px; background: #fff; min-height: 100vh; }
-.title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333; }
+.container { min-height: 100vh; background: #f5f7fa; transition: background 0.3s; }
+.bg-white { background: #ffffff !important; }
 
-/* 表单样式 */
-.form-group { margin-bottom: 15px; 
-  .label { font-size: 14px; color: #555; margin-bottom: 8px; }
-  .input { border: 1px solid #ddd; padding: 10px; border-radius: 8px; background: #f9f9f9; }
-  .textarea { width: 100%; border: 1px solid #ddd; padding: 10px; border-radius: 8px; background: #f9f9f9; height: 80px; box-sizing: border-box; }
-}
-.ocr-upload { background: #eef6ff; color: #007AFF; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 25px; border: 1px dashed #007AFF; }
-.submit-btn { background: #007AFF; color: white; border-radius: 25px; font-size: 16px; margin-top: 20px; }
+/* 渐入动画 */
+.fade-in { animation: fadeIn 0.4s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Loading 骨架屏样式 */
-.step-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; 
-  .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007AFF; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
-  .loading-text { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 10px; }
-  .loading-subtext { font-size: 13px; color: #999; }
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* ================== Step 1: 表单样式 ================== */
+.step-form { padding: 15px; padding-bottom: 100px; }
+.card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+.section-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #2c3e50; border-left: 4px solid #007AFF; padding-left: 10px; }
 
-/* 预览页样式 */
-.preview-box { background: #f8f8f8; padding: 15px; border-radius: 10px; max-height: 350px; margin-bottom: 20px; border: 1px solid #eee; }
-.focus-alert { background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 14px; }
-.preview-task { display: flex; margin-bottom: 10px; background: #fff; padding: 10px; border-radius: 6px; 
-  .tag { background: #e0eaff; color: #007AFF; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-right: 10px; height: fit-content; white-space: nowrap; }
-  .desc { font-size: 14px; color: #333; line-height: 1.5; }
+.info-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0; 
+	.label { font-size: 14px; color: #7f8c8d; }
+	.value { font-size: 14px; color: #2c3e50; font-weight: 500; text-align: right; }
+	.readonly { color: #bdc3c7; }
+	.editable { color: #007AFF; font-weight: bold; background: #f9f9f9; padding: 4px 10px; border-radius: 4px; width: 80px; }
 }
-.feedback-area { margin-bottom: 20px; 
-  .label { font-size: 14px; color: #666; margin-bottom: 10px; display: block; }
-  .feedback-input-box { display: flex; align-items: center; 
-    .input { flex: 1; border: 1px solid #ddd; padding: 8px 12px; border-radius: 20px; font-size: 14px; margin-right: 10px; }
-    .btn-regenerate { font-size: 13px; background: #ff9500; color: white; border-radius: 20px; padding: 0 15px; height: 36px; line-height: 36px; margin: 0; }
-  }
+.tip { font-size: 11px; color: #95a5a6; margin-top: 10px; }
+.health-input { width: 100%; height: 100px; background: #f8f9fa; border-radius: 8px; padding: 12px; font-size: 13px; box-sizing: border-box; }
+
+.upload-area { margin-top: 20px;
+	.upload-title { font-size: 14px; color: #7f8c8d; margin-bottom: 10px; }
+	.upload-box { 
+		width: 100px; height: 100px; background: #f8f9fa; border: 2px dashed #dcdfe6; border-radius: 8px;
+		display: flex; flex-direction: column; align-items: center; justify-content: center;
+		image { width: 100%; height: 100%; border-radius: 8px; }
+		.plus { font-size: 30px; color: #909399; }
+		text { font-size: 12px; color: #909399; }
+	}
+}
+
+.bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; background: #fff; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); z-index: 10;
+	.gen-btn { background: #007AFF; color: #fff; border-radius: 25px; height: 48px; line-height: 48px; font-weight: bold; font-size: 16px; }
+}
+
+/* ================== Step 2: 沉浸式 Loading ================== */
+.step-loading { 
+	height: 100vh; display: flex; align-items: center; justify-content: center; background: #fff;
+	.loading-content { text-align: center; width: 80%; }
+	.paw-icon { font-size: 60px; margin-bottom: 20px; animation: pulse 1.5s infinite; display: inline-block; }
+	.loading-title { font-size: 18px; font-weight: bold; color: #333; display: block; margin-bottom: 10px; }
+	.loading-subtext { font-size: 13px; color: #007AFF; display: block; margin-bottom: 30px; min-height: 20px; }
+	
+	/* 进度条装X效果 */
+	.progress-bar { 
+		height: 4px; background: #f0f0f0; border-radius: 2px; overflow: hidden; position: relative;
+		.progress-inner { 
+			position: absolute; left: 0; top: 0; height: 100%; width: 40%; background: #007AFF; border-radius: 2px;
+			animation: scan 2s linear infinite;
+		}
+	}
+}
+@keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes scan { 0% { left: -40%; } 100% { left: 100%; } }
+
+/* ================== Step 3: 预览确认页 ================== */
+.step-preview {
+	height: 100vh; display: flex; flex-direction: column; background: #fff;
+	.preview-header { 
+		padding: 40px 20px 20px; text-align: center;
+		.icon { font-size: 30px; display: block; margin-bottom: 10px; }
+		.title { font-size: 20px; font-weight: bold; color: #333; }
+	}
+	.preview-body { 
+		flex: 1; padding: 0 20px; overflow-y: auto; padding-bottom: 100px;
+		.ai-card { background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+		.disclaimer { font-size: 11px; color: #aaa; margin-top: 15px; line-height: 1.5; text-align: justify; }
+	}
+	.bottom-action-bar { 
+		position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; background: #fff; 
+		display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid #f9f9f9;
+		button { flex: 1; height: 46px; line-height: 46px; border-radius: 23px; font-size: 15px; font-weight: bold; margin: 0; }
+		.btn-outline { background: #fff; color: #666; border: 1px solid #ddd; }
+		.btn-outline::after { border: none; }
+		.btn-primary { background: #007AFF; color: #fff; border: none; }
+	}
 }
 </style>
