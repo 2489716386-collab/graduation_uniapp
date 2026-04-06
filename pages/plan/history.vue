@@ -50,8 +50,11 @@ export default {
     };
   },
   onLoad(options) {
-    this.petId = options.petId;
-    this.fetchHistoryData();
+	  const id = options.petid || options.petId;
+	      if (id && id !== 'undefined' && id !== 'null') {
+	          this.petId = id;
+	          this.fetchHistoryData();
+	      }
   },
   methods: {
     fetchHistoryData() {

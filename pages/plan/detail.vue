@@ -74,20 +74,12 @@ export default {
 		};
 	},
 	onLoad(options) {
-	    // 【核心修复】兼容 petid 和 petId 两种可能的传参方式
 	    const id = options.petid || options.petId;
-	    
-	    if (id && id !== 'undefined') {
+	    if (id && id !== 'undefined' && id !== 'null') {
 	        this.petId = id;
-	        console.log("成功捕获到宠物ID:", this.petId);
 	        this.fetchAllData();
 	    } else {
-	        uni.showModal({
-	            title: '提示',
-	            content: '无法获取宠物信息，请返回重试',
-	            showCancel: false,
-	            success: () => { uni.navigateBack(); }
-	        });
+	        uni.showToast({ title: '参数丢失，请返回', icon: 'none' });
 	    }
 	},
 	methods: {
@@ -149,11 +141,10 @@ export default {
 			return dateStr.substring(5); // 截取 MM-DD
 		},
 		goToHistory() {
-			uni.navigateTo({ url: `/pages/plan/history?petId=${this.petId}` });
+			uni.navigateTo({ url: `/pages/plan/history?petid=${this.petId}` });
 		},
 		goToGenerate() {
-			uni.navigateTo({ url: `/pages/plan/generate?petId=${this.petId}` });
-		}
+			uni.navigateTo({ url: `/pages/plan/generate?petid=${this.petId}` });		}
 	}
 }
 </script>

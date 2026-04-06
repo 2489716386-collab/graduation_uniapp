@@ -3,9 +3,8 @@
 		<view class="header">请选择要查看计划的宠物</view>
 
 		<view class="pet-list">
-			<view class="pet-group" v-for="(pet, pIndex) in petList" :key="pet.petid">
-				<view class="pet-card" v-if="pet" @click="goToDetail(pet.petid || pet.petId)">
-				        <image class="avatar" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+			<view class="pet-group" v-for="(pet, index) in petList" :key="pet.petid || index">
+				<view class="pet-card" @click="goToDetail(pet)">				        <image class="avatar" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
 				        <view class="info">
 				            <view class="name-row">
 				                <text class="name">{{ pet.name }}</text>
@@ -58,9 +57,9 @@ export default {
 		};
 	},
 	onShow() {
-		// 每次回到页面都刷新一次数据
-		this.fetchPetsAndTasks();
-	},
+	        // plan.vue 是列表主页，不需要接收特定宠物的 ID，只需要直接请求全部列表即可
+	        this.fetchPetsAndTasks();
+	    },
 	methods: {
 		// 1. 串行加载：先拿宠物，再拿任务
 		async fetchPetsAndTasks() {
@@ -134,10 +133,16 @@ export default {
 			}
 		},
 
-		goToDetail(petId) {
-			uni.navigateTo({
-				url: `/pages/plan/detail?petId=${petId}`
-			});
+		goToDetail(pet) {
+		    // 暴力获取法：不管后端传出来叫什么名字，我全抓一遍！
+		    const id = pet.petid || pet.petId || pet.id;
+		    
+		    if (!id || id === 'undefined' || id === 'null') {
+		        uni.showToast({ title: '宠物数据加载中...', icon: 'none' });
+		        return;
+		    }
+		    // 跳转全部用小写 petid
+		    uni.navigateTo({ url: `/pages/plan/detail?petid=${id}` });
 		},
 
 		getCompletedCount(tasks) {
