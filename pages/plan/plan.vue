@@ -1,117 +1,195 @@
 <template>
-  <view class="container">
-    <view class="header">请选择要查看计划的宠物</view>
-    
-    <view class="pet-list">
-      <view class="pet-group" v-for="(pet, pIndex) in petList" :key="pet.id">
-        <view class="pet-card" @click="goToDetail(pet.id)">
-          <image class="avatar" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
-          <view class="info">
-            <text class="name">{{ pet.name }}</text>
-            <text class="desc">{{ pet.breed }} · {{ pet.age }}岁</text>
-          </view>
-          <text class="arrow">❯</text>
-        </view>
+	<view class="container">
+		<view class="header">请选择要查看计划的宠物</view>
 
-        <view class="todo-section">
-          <view class="todo-header">
-            <text class="todo-title">今日待办</text>
-            <text class="todo-count">{{ getCompletedCount(pet.tasks) }}/{{ pet.tasks.length }}</text>
-          </view>
-          <view class="task-list">
-            <view class="task-item" v-for="(task, tIndex) in pet.tasks" :key="tIndex">
-              <view class="task-left">
-                <text class="task-dot" :class="{ 'dot-done': task.completed }"></text>
-                <text class="task-text" :class="{ 'text-done': task.completed }">{{ task.content }}</text>
-              </view>
-              <button 
-                class="check-btn" 
-                :class="{ 'btn-done': task.completed }"
-                @click.stop="toggleTask(pIndex, tIndex)"
-              >
-                {{ task.completed ? '已打卡' : '打卡' }}
-              </button>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
+		<view class="pet-list">
+			<view class="pet-group" v-for="(pet, pIndex) in petList" :key="pet.petid">
+				<view class="pet-card" v-if="pet" @click="goToDetail(pet.petid || pet.petId)">
+				        <image class="avatar" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+				        <view class="info">
+				            <view class="name-row">
+				                <text class="name">{{ pet.name }}</text>
+				                <text class="progress-tag">{{ pet.progress || 0 }}% 已完成</text>
+				            </view>
+				            <text class="desc">
+				                {{ pet.breedName }} · {{ pet.age }}岁
+				            </text>
+				        </view>
+				        <text class="arrow">❯</text>
+				    </view>
+
+				<view class="todo-section">
+					<view class="todo-header">
+						<text class="todo-title">今日待办事项</text>
+						<text class="todo-count" v-if="pet.tasks">{{ getCompletedCount(pet.tasks) }}/{{ pet.tasks.length }}</text>
+					</view>
+					
+					<view class="task-list" v-if="pet.tasks && pet.tasks.length > 0">
+						<view class="task-item" v-for="(task, tIndex) in pet.tasks" :key="task.id">
+							<view class="task-left">
+								<text class="task-dot" :class="{ 'dot-done': task.isCompleted === 1 }"></text>
+								<text class="task-text" :class="{ 'text-done': task.isCompleted === 1 }">
+									[{{ task.taskCategory }}] {{ task.taskContent }}
+								</text>
+							</view>
+							<button 
+								class="check-btn" 
+								:class="{ 'btn-done': task.isCompleted === 1 }"
+								@click.stop="handleCheckIn(pIndex, tIndex)"
+							>
+								{{ task.isCompleted === 1 ? '已打卡' : '打卡' }}
+							</button>
+						</view>
+					</view>
+					<view class="no-task" v-else>
+						<text>今日暂无养护计划，请点击上方更新</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
 </template>
 
 <script>
 export default {
-  data() {
-    return {
-      petList: [
-        { 
-          id: 1, name: '旺财', breed: '金毛', age: 3, avatar: '',
-          tasks: [
-            { content: '早饭：100g 处方粮', completed: true },
-            { content: '午后散步 20 分钟', completed: false },
-            { content: '晚间梳毛护理', completed: false }
-          ]
-        },
-        { 
-          id: 2, name: '咪咪', breed: '布偶猫', age: 1, avatar: '',
-          tasks: [
-            { content: '清理猫砂盆', completed: true },
-            { content: '喂食化毛膏', completed: true }
-          ]
-        }
-      ]
-    };
-  },
-  methods: {
-    goToDetail(petId) {
-      uni.navigateTo({ url: `/pages/plan/detail?petId=${petId}` });
-    },
-    toggleTask(pIndex, tIndex) {
-      this.petList[pIndex].tasks[tIndex].completed = !this.petList[pIndex].tasks[tIndex].completed;
-      if (this.petList[pIndex].tasks[tIndex].completed) {
-        uni.showToast({ title: '打卡成功！', icon: 'none' });
-      }
-    },
-    getCompletedCount(tasks) {
-      return tasks.filter(t => t.completed).length;
-    }
-  }
+	data() {
+		return {
+			petList: [] // 存储宠物及其关联任务
+		};
+	},
+	onShow() {
+		// 每次回到页面都刷新一次数据
+		this.fetchPetsAndTasks();
+	},
+	methods: {
+		// 1. 串行加载：先拿宠物，再拿任务
+		async fetchPetsAndTasks() {
+		    const token = uni.getStorageSync('token');
+		    try {
+		        const res = await uni.request({
+		            url: 'http://localhost:8080/pets/user/list',
+		            method: 'GET',
+		            header: { 'token': token }
+		        });
+		
+		        if (res.data.code === 200 && res.data.data) {
+		            const pets = res.data.data;
+		            
+		            const petWithTasks = await Promise.all(pets.map(async (pet) => {
+		                // 1. 兼容 petid 或 petId
+		                const targetId = pet.petid || pet.petId; 
+		                
+		                try {
+		                    const taskRes = await uni.request({
+		                        url: `http://localhost:8080/care-plans-day/today-plan/${targetId}`,
+		                        method: 'GET',
+		                        header: { 'token': token }
+		                    });
+		                    
+		                    if (taskRes.data.code === 200 && taskRes.data.data) {
+		                        // 【核心修复】使用解构赋值确保 pet 的原有属性（breed, age, avatar）不丢失
+		                        return {
+		                            ...pet, // 保留原有的 breed, age, avatar, name 等
+		                            tasks: taskRes.data.data.tasks || [],
+		                            progress: taskRes.data.data.progress || 0
+		                        };
+		                    }
+		                } catch (err) {
+		                    console.error("加载今日计划失败:", err);
+		                }
+		                // 如果请求失败，也要返回原始 pet 数据，否则页面会显示 undefined
+		                return { ...pet, tasks: [], progress: 0 };
+		            }));
+		
+		            this.petList = petWithTasks;
+		        }
+		    } catch (e) {
+		        uni.showToast({ title: '加载失败', icon: 'none' });
+		    }
+		},
+
+		// 2. 打卡逻辑：调用后端 check-in 接口
+		async handleCheckIn(pIndex, tIndex) {
+			const task = this.petList[pIndex].tasks[tIndex];
+			// 如果已经打卡，视业务逻辑决定是否允许取消（本处支持 toggle）
+			try {
+				const res = await uni.request({
+					url: `http://localhost:8080/care-plans-day/check-in/${task.id}`,
+					method: 'POST',
+					header: { 'Authorization': uni.getStorageSync('token') }
+				});
+
+				if (res.data.code === 200) {
+					// 更新本地 UI 状态
+					task.isCompleted = (task.isCompleted === 1 ? 0 : 1);
+					// 后端会返回最新的总进度百分比
+					this.petList[pIndex].progress = res.data.data;
+					
+					if (task.isCompleted === 1) {
+						uni.showToast({ title: '打卡成功', icon: 'success' });
+					}
+				}
+			} catch (e) {
+				uni.showToast({ title: '打卡接口异常', icon: 'none' });
+			}
+		},
+
+		goToDetail(petId) {
+			uni.navigateTo({
+				url: `/pages/plan/detail?petId=${petId}`
+			});
+		},
+
+		getCompletedCount(tasks) {
+			return tasks.filter(t => t.isCompleted === 1).length;
+		}
+	}
 }
 </script>
 
 <style lang="scss">
-.container { padding: 20px; background-color: #f8f8f8; min-height: 100vh; box-sizing: border-box; }
-.header { font-size: 14px; color: #666; margin-bottom: 15px; padding-left: 4px; }
+.container { padding: 20px; background-color: #f8f8f8; min-height: 100vh; }
+.header { font-size: 13px; color: #999; margin-bottom: 12px; }
 
-.pet-group { background: #fff; border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.pet-group { 
+	background: #fff; border-radius: 12px; margin-bottom: 20px; overflow: hidden; 
+	box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+}
 
 .pet-card {
-  display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f0f0f0;
-  .avatar { width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; background: #eee; }
-  .info { flex: 1; .name { font-size: 16px; font-weight: bold; color: #333; } .desc { font-size: 12px; color: #888; } }
-  .arrow { color: #c0c0c0; font-size: 14px; }
+	display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f9f9f9;
+	.avatar { width: 50px; height: 50px; border-radius: 25px; margin-right: 12px; background: #eee; }
+	.info { 
+		flex: 1; 
+		.name-row { display: flex; align-items: center; justify-content: space-between; }
+		.name { font-size: 16px; font-weight: bold; color: #333; }
+		.progress-tag { font-size: 11px; color: #007AFF; background: #eef6ff; padding: 2px 6px; border-radius: 4px; }
+		.desc { font-size: 12px; color: #888; margin-top: 4px; display: block; }
+	}
+	.arrow { color: #ccc; font-size: 14px; margin-left: 10px; }
 }
 
 .todo-section {
-  padding: 12px 15px;
-  .todo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-    .todo-title { font-size: 13px; font-weight: bold; color: #555; }
-    .todo-count { font-size: 12px; color: #999; }
-  }
-  .task-item {
-    display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-    .task-left { display: flex; align-items: center; flex: 1;
-      .task-dot { width: 6px; height: 6px; border-radius: 50%; background: #007AFF; margin-right: 10px; }
-      .dot-done { background: #ccc; }
-      .task-text { font-size: 14px; color: #444; }
-      .text-done { color: #aaa; text-decoration: line-through; }
-    }
-    .check-btn { 
-      font-size: 11px; padding: 0 12px; height: 24px; line-height: 24px; border-radius: 12px; 
-      background: #007AFF; color: #fff; margin: 0;
-      &::after { border: none; }
-    }
-    .btn-done { background: #f0f0f0; color: #999; }
-  }
+	padding: 12px 15px;
+	.todo-header { display: flex; justify-content: space-between; margin-bottom: 12px;
+		.todo-title { font-size: 13px; font-weight: bold; color: #666; }
+		.todo-count { font-size: 12px; color: #999; }
+	}
+	.task-item {
+		display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+		.task-left { display: flex; align-items: center; flex: 1;
+			.task-dot { width: 6px; height: 6px; border-radius: 3px; background: #007AFF; margin-right: 10px; }
+			.dot-done { background: #ddd; }
+			.task-text { font-size: 13px; color: #333; }
+			.text-done { color: #bbb; text-decoration: line-through; }
+		}
+		.check-btn { 
+			font-size: 11px; padding: 0 10px; height: 24px; line-height: 24px; border-radius: 12px; 
+			background: #007AFF; color: #fff; margin: 0;
+			&::after { border: none; }
+		}
+		.btn-done { background: #f0f0f0; color: #999; }
+	}
+	.no-task { text-align: center; font-size: 12px; color: #ccc; padding: 10px 0; }
 }
 </style>
