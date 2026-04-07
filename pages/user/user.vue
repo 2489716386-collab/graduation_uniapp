@@ -154,37 +154,39 @@
 
 			// ================= 修改：获取宠物列表并匹配 =================
 			getPetList() {
-				const token = uni.getStorageSync('token');
-				if (!token) return;
-
-				uni.request({
-					url: 'http://localhost:8080/pets/user/list',
-					method: 'GET',
-					header: {
-						'token': token
-					},
-					success: (res) => {
-						if (res.data.code === 200) {
-							const rawPets = res.data.data;
-
-							// 【核心魔法】遍历后端返回的宠物列表，拿 breedId 去字典里找名字
-							this.petList = rawPets.map(pet => {
-								const breedObj = this.allBreeds.find(b => b.breedId === pet.breedId);
-								return {
-									...pet,
-									// 如果找到了就用真正的名字，如果没找到就兜底显示'未知品种'
-									breedName: breedObj ? breedObj.breedName : '未知品种'
-								};
-							});
-						}
-					}
-				});
+			    const token = uni.getStorageSync('token');
+			    if (!token) return;
+			
+			    uni.request({
+			        url: 'http://localhost:8080/pets/user/list',
+			        method: 'GET',
+			        header: {
+			            'token': token
+			        },
+			        success: (res) => {
+			            if (res.data.code === 200) {
+			                // ✅ 核心魔法去掉了！直接接收后端组装好的 DTO 列表！
+			                this.petList = res.data.data; 
+			            }
+			        }
+			    });
 			},
 			getUserStats() {
-				this.stats = {
-					postCount: 12,
-					likeCount: 128
-				};
+			    const token = uni.getStorageSync('token');
+			    if (!token) return;
+			
+			    uni.request({
+			        url: 'http://localhost:8080/users/user/stats', // 呼叫你刚写的后端接口
+			        method: 'GET',
+			        header: { 'token': token },
+			        success: (res) => {
+			            if (res.data.code === 200) {
+			                // 后端返回了 { postCount: X, likeCount: Y }
+			                // 直接赋值给前端绑定的变量！
+			                this.stats = res.data.data; 
+			            }
+			        }
+			    });
 			},
 			calculateAge(birthDate) {
 				if (!birthDate) return '年龄未知';
@@ -227,10 +229,12 @@
 				});
 			},
 			goToMyPosts() {
-				uni.showToast({
-					title: '跳转到我的动态',
-					icon: 'none'
-				});
+			    uni.navigateTo({
+			        url: '/pages/community/personal-center', // 跳转到社区个人动态页面
+			        fail: (err) => {
+			            console.error('跳转个人动态页失败:', err);
+			        }
+			    });
 			},
 			goToDynamicNotices() {
 				uni.showToast({
@@ -298,17 +302,24 @@
 <style scoped lang="scss">
 	/* 样式与上一版完全一致，无需修改 */
 	.container {
-		background-color: #F7F9FC;
-		min-height: 100vh;
-		padding-bottom: 60rpx;
+	  min-height: 100vh; /* 极其重要！确保页面铺满屏幕 */
+	  
+	  /* 1. 设置为整个页面的专属背景图 */
+	  background-image: url('https://mp-aa1e3790-0b44-4bfc-afa7-9b9be364f376.cdn.bspapp.com/cloudstorage/84fbb9c9-6afc-4a0a-8b66-589fb7b34ee3.jpg');
+	  background-size: cover;      /* 图片等比例缩放铺满 */
+	  background-position: center; /* 图片居中 */
+	  background-repeat: no-repeat;/* 防止图片重复拼接 */
 	}
 
 	.user-header {
-		background: linear-gradient(180deg, #E2F0FD 0%, #FFFFFF 100%);
-		padding: 60rpx 40rpx 120rpx;
-		position: relative;
-		border-bottom-left-radius: 60rpx;
-		border-bottom-right-radius: 60rpx;
+	    /* 1. 删掉或覆盖之前的背景图/渐变色，改为透明 */
+	    background-color: transparent; /* 或者删掉之前的 background-image 属性 */
+	    
+	    /* 2. 保留原来的排版、圆角和内边距样式，让它看起来没变 */
+	    padding: 60rpx 40rpx 120rpx;
+	    position: relative;
+	    border-bottom-left-radius: 60rpx;
+	    border-bottom-right-radius: 60rpx;
 	}
 
 	.header-action-btn {

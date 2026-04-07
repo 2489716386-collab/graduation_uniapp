@@ -133,6 +133,15 @@ export default {
       myFavPage: 1
 		};
 	},
+	// 1. 每次进入页面时触发（拉取个人信息和列表数据）
+		onShow() {
+			this.refresh(); 
+		},
+	
+		// 2. 页面滑动到底部时触发（调用你写好的 loadMore 方法实现分页加载）
+		onReachBottom() {
+			this.loadMore();
+		},
 	methods: {
 		refresh() {
 			const token = uni.getStorageSync('token');
