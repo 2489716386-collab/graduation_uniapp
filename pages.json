@@ -118,6 +118,12 @@
 			"style": {
 				"navigationBarTitleText": "历史计划"
 			}
+		},
+		{
+			"path": "pages/index/mood-log",
+			"style": {
+				"navigationBarTitleText": "日志页"
+			}
 		}
 	],
 	"globalStyle": {
