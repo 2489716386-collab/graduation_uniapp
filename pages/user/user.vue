@@ -102,7 +102,6 @@
 		// 👈 修改：改成 async 异步，确保先拿到字典，再渲染宠物列表
 		async onShow() {
 			this.getUserProfile();
-			await this.loadBreeds(); // 第一步：拉取品种字典
 			this.getPetList(); // 第二步：拉取宠物列表并匹配名字
 			this.getUserStats();
 			this.getNoticesCount();
@@ -198,29 +197,22 @@
 				if (age < 0) return '刚出生';
 				return age > 0 ? age + '岁' : '不满1岁';
 			},
-			// 👈 新增：获取通知并计算未读数
+			// 👈 新增：获取通知
 			getNoticesCount() {
-				const token = uni.getStorageSync('token');
-				if (!token) return;
-
-				uni.request({
-					url: 'http://localhost:8080/notifications/user/list',
-					method: 'GET',
-					header: {
-						'token': token
-					},
-					success: (res) => {
-						if (res.data.code === 200) {
-							const notices = res.data.data;
-							// 从本地缓存获取上次阅读到的最后一条通知的 ID（如果没有则默认为 0）
-							const lastReadId = uni.getStorageSync('lastReadNoticeId') || 0;
-
-							// 计算未读数：找出所有 ID 大于 lastReadId 的通知
-							this.unreadNoticeCount = notices.filter(n => n.noticeId > lastReadId).length;
-						}
-					}
-				});
-			},
+			    const token = uni.getStorageSync('token');
+			    if (!token) return;
+			
+			    uni.request({
+			        url: 'http://localhost:8080/notifications/user/unread-count',
+			        method: 'GET',
+			        header: { 'token': token },
+			        success: (res) => {
+			            if (res.data.code === 200) {
+			                this.unreadNoticeCount = res.data.data; // 后端直接给红点数字
+			            }
+			        }
+			    });
+				},
 
 			editProfile() {
 				uni.navigateTo({
