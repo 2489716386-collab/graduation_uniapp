@@ -44,24 +44,29 @@
 							<text class="nickname">{{ userInfo.nickname }}</text>
 							<text class="time">{{ post.createTime }}</text>
 						</view>
-						<view class="delete-btn" v-if="item.userId === currentUserId"
-							@click.stop="deletePost(item.id, index)">
-							<text style="color: #ff4d4f; font-size: 24rpx;">删除</text>
-						</view>
 					</view>
 					<view class="post-body">
 						<text class="content-text">{{ post.content }}</text>
+						<view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+								<image 
+									class="grid-img" 
+									v-for="(img, idx) in post.imageList" 
+									:key="idx" 
+									:src="img" 
+									mode="aspectFill"
+									@click.stop="previewImage(img, post.imageList)">
+								</image>
+							</view>
 					</view>
 					<view class="post-footer">
 						<view class="action-btn" @click.stop="toggleLikeForMyPost(post)">
-							<text
-								:class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }}
-								{{ post.likeCount || post.likes || 0 }}</text>
+							<text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount || post.likes || 0 }}</text>
 						</view>
 						<view class="action-btn">
 							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
 						</view>
-						<view class="action-btn" @click.stop="deleteMyPost(post.postId)">
+						
+						<view class="action-btn" @click.stop="deleteMyPost(post.postId || post.id)">
 							<text style="color: #FF4D4F;">删除</text>
 						</view>
 					</view>
@@ -85,6 +90,16 @@
 					</view>
 					<view class="post-footer">
 						<view class="action-btn" @click.stop="toggleLikeInList(post, index, myLikeList)">
+							<view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+							        <image 
+							            class="grid-img" 
+							            v-for="(img, idx) in post.imageList" 
+							            :key="idx" 
+							            :src="img" 
+							            mode="aspectFill"
+							            @click.stop="previewImage(img, post.imageList)">
+							        </image>
+							    </view>
 							<text class="color-active">已赞 {{ post.likeCount || post.likes || 0 }}</text>
 						</view>
 						<view class="action-btn">
@@ -275,13 +290,25 @@
 					}
 				});
 			},
-			processPostData(records) {
-				const posts = records || [];
+			processPostData(posts) {
+				if (!posts) return [];
 				posts.forEach(post => {
-					if (typeof post.tags === 'string' && post.tags.trim() !== '') {
+					// 原有处理标签的逻辑
+					if (post.tags && typeof post.tags === 'string' && post.tags.trim() !== '') {
 						post.tags = post.tags.split(',');
 					} else if (!post.tags) {
 						post.tags = [];
+					}
+					
+					// 👇 新增：统一在这里处理 JSON 字符串转图片数组 👇
+					if (post.mediaUrls) {
+						try {
+							post.imageList = JSON.parse(post.mediaUrls);
+						} catch (e) {
+							post.imageList = [];
+						}
+					} else {
+						post.imageList = [];
 					}
 				});
 				return posts;
@@ -314,8 +341,11 @@
 					success: (res) => {
 						if (this.handleAuthError(res)) return;
 						if (res.data.code === 200) {
+							// 1. 取出 records 数组，并交给 processPostData 处理
 							const newPosts = this.processPostData(res.data.data.records);
+							// 2. 追加到现有列表，保证上拉加载功能正常
 							this.myPostList = this.myPostList.concat(newPosts);
+							this.myPostPage++;
 						}
 					}
 				});
@@ -512,6 +542,12 @@
 						}
 					}
 				});
+			},
+			previewImage(currentUrl, urlList) {
+			    uni.previewImage({
+			        current: currentUrl,
+			        urls: urlList
+			    });
 			},
 			goToNotices() {
 				if (!this.isLoggedIn) {
@@ -759,5 +795,19 @@
 	.color-active {
 		color: #42b983;
 		font-weight: bold;
+	}
+	
+	/* 图片九宫格样式 */
+	.image-grid {
+	    display: flex;
+	    flex-wrap: wrap;
+	    gap: 10rpx;
+	    margin-top: 15rpx;
+	}
+	.grid-img {
+	    width: 200rpx;
+	    height: 200rpx;
+	    border-radius: 8rpx;
+	    background-color: #f0f0f0;
 	}
 </style>
