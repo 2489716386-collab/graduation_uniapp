@@ -7,6 +7,16 @@
 		</view>
 
 		<view class="login-section">
+			
+			<view class="input-group">
+			        <input class="input-item" type="text" v-model="loginForm.username" placeholder="请输入测试账号" />
+			        <input class="input-item" type="password" v-model="loginForm.password" placeholder="请输入密码" />
+			    </view>
+			
+			    <button class="account-login-btn" @click="handleAccountLogin">
+			        <text class="btn-text">账号密码登录</text>
+			    </button>
+			
 			<button class="wx-login-btn" @click="handleWxLogin">
 				<text class="btn-text">微信一键登录</text>
 			</button>
@@ -27,11 +37,60 @@
 <script>
 	export default {
 		data() {
-			return {
-				isAgreed: false // 默认不勾选，防合规风险
-			}
-		},
+		        return {
+		            isAgreed: false, // 注意这里要有个逗号
+		            
+		            // 【关键修复】必须在 return 里面完整定义 loginForm 对象和它的属性
+		            loginForm: {
+		                username: '',
+		                password: ''
+		            }
+		        }
+		    },
 		methods: {
+			handleAccountLogin() {
+			        if (!this.isAgreed) {
+			            return uni.showToast({ title: '请先勾选同意隐私政策', icon: 'none' });
+			        }
+			        if (!this.loginForm.username || !this.loginForm.password) {
+			            return uni.showToast({ title: '请输入账号和密码', icon: 'none' });
+			        }
+			
+			        uni.showLoading({ title: '登录中...' });
+			
+			        uni.request({
+			            // 关键：对应后端新增的移动端登录端点
+			            url: 'http://localhost:8080/auth/user-login', 
+			            method: 'POST',
+			            data: {
+			                username: this.loginForm.username,
+			                password: this.loginForm.password
+			            },
+			            success: (res) => {
+			                uni.hideLoading();
+			                if (res.data.code === 200) {
+			                    // 登录成功，保存 Token
+			                    uni.setStorageSync('token', res.data.data.token);
+			                    uni.showToast({ title: '登录成功', icon: 'success' });
+			                    
+			                    // 跳转到业务首页
+			                    setTimeout(() => {
+			                        uni.switchTab({ url: '/pages/index/index' });
+			                    }, 1000);
+			                } else {
+			                    // 这里会捕获后端抛出的异常，比如“管理员账号禁止登录移动端”
+			                    uni.showToast({ 
+			                        title: res.data.msg || '账号或密码错误', 
+			                        icon: 'none' 
+			                    });
+			                }
+			            },
+			            fail: () => {
+			                uni.hideLoading();
+			                uni.showToast({ title: '网络连接失败', icon: 'none' });
+			            }
+			        });
+			    },
 			handleWxLogin() {
 				if (!this.isAgreed) {
 					return uni.showToast({
@@ -215,5 +274,33 @@
 
 	.link {
 		color: #42b983;
+	}
+	
+	.input-group {
+	    width: 100%;
+	    margin-bottom: 30rpx;
+	}
+	.input-item {
+	    height: 90rpx;
+	    background-color: #f5f5f5;
+	    border-radius: 45rpx;
+	    padding: 0 40rpx;
+	    margin-bottom: 20rpx;
+	    font-size: 28rpx;
+	}
+	.account-login-btn {
+	    background-color: #333333;
+	    color: white;
+	    border-radius: 50rpx;
+	    height: 96rpx;
+	    display: flex;
+	    justify-content: center;
+	    align-items: center;
+	    font-size: 34rpx;
+	    font-weight: bold;
+	    margin-bottom: 30rpx;
+	}
+	.account-login-btn::after {
+	    border: none;
 	}
 </style>

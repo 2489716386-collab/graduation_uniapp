@@ -144,8 +144,9 @@
 						},
 						data: {
 							content: this.content,
-							// 如果后端实体类里有存图片的字段(如 imagesUrl)，取消下面这行的注释
-							// imagesUrl: uploadedUrls.join(',') 
+							 // 2. 将字段名改为 mediaUrls 以匹配后端 CommunityPosts 实体类中的属性名
+							// 3. 后端要求 JSON 序列化，所以使用 JSON.stringify
+							mediaUrls: uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null
 						},
 						success: (res) => {
 							uni.hideLoading();
@@ -163,8 +164,15 @@
 								uni.setStorageSync('switchCommunityTab', 'personal');
 
 								setTimeout(() => {
-									uni.switchTab({
-										url: '/pages/community/community'
+									// 既然是从社区页进来的，直接退回上一页即可触发社区页的 onShow 刷新
+									uni.navigateBack({
+										delta: 1,
+										fail: () => {
+											// 作为兜底方案，如果确实没有上一页（比如特殊场景进入），再走 switchTab
+											uni.switchTab({
+												url: '/pages/community/community'
+											});
+										}
 									});
 								}, 1000);
 							} else {

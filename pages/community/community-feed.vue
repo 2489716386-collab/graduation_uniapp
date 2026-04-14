@@ -25,10 +25,21 @@
 				</view>
 
 				<view class="post-body">
-					<text class="content-text">{{ post.content }}</text>
-					<view class="tags-wrap" v-if="post.tags && post.tags.length">
-						<text class="tag" v-for="(tag, tidx) in post.tags" :key="tidx">#{{ tag }}</text>
-					</view>
+				    <text class="content-text">{{ post.content }}</text>
+				    
+				    <view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+				        <image 
+				            class="grid-img" 
+				            v-for="(img, idx) in post.imageList" 
+				            :key="idx" 
+				            :src="img" 
+				            mode="aspectFill"
+				            @click.stop="previewImage(img, post.imageList)">
+				        </image>
+				    </view>
+				    <view class="tags-wrap" v-if="post.tags && post.tags.length">
+				        <text class="tag" v-for="(tag, tidx) in post.tags" :key="tidx">#{{ tag }}</text>
+				    </view>
 				</view>
 
 				<view class="post-footer">
@@ -72,20 +83,42 @@
 
 			// 获取个性化推荐列表
 			fetchRecommendedPosts() {
-				const token = uni.getStorageSync('token');
-				uni.request({
-					// 假设你在 CommunityPostsController 里写的推荐接口是这个路径
-					url: 'http://localhost:8080/community-posts/recommend',
-					method: 'GET',
-					header: {
-						'token': token
-					}, // 必须传 token，后端才能解析 userId 获取宠物和搜索历史
-					success: (res) => {
-						if (res.data.code === 200) {
-							this.postList = res.data.data;
-						}
-					}
-				});
+			    const token = uni.getStorageSync('token');
+			    uni.request({
+			        url: 'http://localhost:8080/community-posts/recommend',
+			        method: 'GET',
+			        header: {
+			            'token': token
+			        },
+			        success: (res) => {
+			            if (res.data.code === 200) {
+			                let records = res.data.data;
+			                // 👇 新增的数据解析逻辑 👇
+			                records.forEach(item => {
+			                    if (item.mediaUrls) {
+			                        try {
+			                            // 将后端的 JSON 字符串解析为数组
+			                            item.imageList = JSON.parse(item.mediaUrls);
+			                        } catch (e) {
+			                            item.imageList = [];
+			                        }
+			                    } else {
+			                        item.imageList = [];
+			                    }
+			                });
+			                // 赋值给绑定的数组
+			                this.postList = records;
+			            }
+			        }
+			    });
+			},
+			
+			// 新增一个方法，用于点击图片放大预览 👇
+			previewImage(currentUrl, urlList) {
+			    uni.previewImage({
+			        current: currentUrl, // 当前显示图片的http链接
+			        urls: urlList // 需要预览的图片http链接列表
+			    });
 			},
 
 			// 下拉刷新时调用
@@ -350,4 +383,19 @@
 		font-weight: 300;
 		line-height: 1;
 	}
+	/* 朋友圈九宫格的图片样式  */
+	.image-grid {
+	    display: flex;
+	    flex-wrap: wrap;
+	    gap: 12rpx; /* 图片之间的间距 */
+	    margin-top: 20rpx;
+	}
+	
+	.grid-img {
+	    width: 216rpx;
+	    height: 216rpx;
+	    border-radius: 12rpx;
+	    background-color: #F8F8F8;
+	}
+	/* 👆 样式结束 👆 */
 </style>
