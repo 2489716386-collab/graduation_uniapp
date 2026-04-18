@@ -22,6 +22,9 @@
 					<view class="recommend-badge" v-if="post.recommendScore && post.recommendScore > 0">
 						<text>🔥 匹配度 {{ post.recommendScore }}</text>
 					</view>
+					<view class="more-icon" @click.stop="handlePostOptions(post.id)">
+					  <uni-icons type="more-filled" size="20"></uni-icons>
+					</view>
 				</view>
 
 				<view class="post-body">
@@ -178,6 +181,49 @@
 				post.isLiked = !post.isLiked;
 				if (post.likeCount !== undefined) post.likeCount += post.isLiked ? 1 : -1;
 			},
+			handlePostOptions(postId) {
+			    uni.showActionSheet({
+			      itemList: ['举报该动态'],
+			      itemColor: '#ff0000', // 设为红色以示警告
+			      success: (res) => {
+			        if (res.tapIndex === 0) {
+			          this.submitReport(postId, 'POST'); // 注意这里对应你后端的 TargetType.POST
+			        }
+			      }
+			    });
+			  },
+			
+			  // 提交举报的统一方法
+			  submitReport(targetId, targetType) {
+			    uni.showModal({
+			      title: '提示',
+			      content: '确认举报该内容吗？',
+			      success: (res) => {
+			        if (res.confirm) {
+			          // 调用你后端的 ReportsController 接口
+			          uni.request({
+			            url: '你的后端基础路径/reports', // 替换为你实际的后端新增举报接口
+			            method: 'POST',
+			            header: {
+			              'Authorization': uni.getStorageSync('token') // 携带用户的 token
+			            },
+			            data: {
+			              targetId: targetId,
+			              targetType: targetType,
+			              reason: '涉嫌违规内容' // 后期你可以做一个弹窗让用户选原因，这里先写死测试
+			            },
+			            success: (response) => {
+			              if(response.data.code === 200 || response.data.code === 1) { // 根据你的 Result.java 成功码调整
+			                uni.showToast({ title: '举报成功，感谢您的反馈', icon: 'none' });
+			              } else {
+			                uni.showToast({ title: response.data.msg || '举报失败', icon: 'none' });
+			              }
+			            }
+			          });
+			        }
+			      }
+			    });
+			  },
 
 			toggleFavorite(post) {
 				const token = uni.getStorageSync('token');
@@ -204,7 +250,6 @@
 
 <style scoped>
 	.recommend-badge {
-	  margin-left: auto; /* 推到最右边 */
 	  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
 	  padding: 4rpx 16rpx;
 	  border-radius: 20rpx;
@@ -396,6 +441,21 @@
 	    height: 216rpx;
 	    border-radius: 12rpx;
 	    background-color: #F8F8F8;
+	}
+	.header-right {
+	  display: flex;
+	  align-items: center;
+	  margin-left: auto; /* 将整个右侧区域推到最右边 */
+	  gap: 20rpx; /* 徽章和三个点之间的间距 */
+	}
+	.more-icon {
+	  padding: 10rpx; /* 增加点击区域大小，方便用户手指点击 */
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	}
+	.more-icon:active {
+	  opacity: 0.7; /* 点击时的按压反馈 */
 	}
 	/* 👆 样式结束 👆 */
 </style>

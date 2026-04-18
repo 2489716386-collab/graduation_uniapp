@@ -15,6 +15,9 @@
 			        <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
 			        <text class="time">{{ post.createTime }}</text>
 			    </view>
+				<view class="post-more-btn" @click="handlePostOptions">
+				        <text class="more-dot">•••</text>
+				    </view>
 			</view>
 
 			<view class="body-text">
@@ -47,11 +50,15 @@
 						<view class="c-content-wrap">
 							<view class="c-main-box" @click="prepareReply(root.commentId, root.nickname)">
 								<view class="c-user">
-									<text class="c-nickname">{{ root.nickname }}</text>
-									<view class="c-like-btn" @click.stop="likeComment(root)">
-										<text :class="root.isLiked ? 'color-active' : ''">♥</text> 
-										<text class="like-count" :class="root.isLiked ? 'color-active' : ''">{{ root.likeCount || '赞' }}</text>
-									</view>
+								    <text class="c-nickname">{{ root.nickname }}</text>
+								    <view class="action-right">
+								        <text class="report-text" @click.stop="handleCommentOptions(root.commentId)">举报</text>
+								        
+								        <view class="c-like-btn" @click.stop="likeComment(root)">
+								            <text :class="root.isLiked ? 'color-active' : ''">♥</text> 
+								            <text class="like-count" :class="root.isLiked ? 'color-active' : ''">{{ root.likeCount || '赞' }}</text>
+								        </view>
+								    </view>
 								</view>
 								<text class="c-text">{{ root.content }}</text>
 								<text class="c-time">{{ root.createTime }}</text>
@@ -65,11 +72,15 @@
 									
 									<view class="r-content">
 										<view class="r-user">
-											<text class="r-nickname">{{ sub.nickname }}</text>
-											<view class="c-like-btn" @click.stop="likeComment(sub)">
-												<text :class="sub.isLiked ? 'color-active' : ''">♥</text> 
-												<text class="like-count" :class="sub.isLiked ? 'color-active' : ''">{{ sub.likeCount || '赞' }}</text>
-											</view>
+										    <text class="r-nickname">{{ sub.nickname }}</text>
+										    <view class="action-right">
+										        <text class="report-text" @click.stop="handleCommentOptions(sub.commentId)">举报</text>
+										        
+										        <view class="c-like-btn" @click.stop="likeComment(sub)">
+										            <text :class="sub.isLiked ? 'color-active' : ''">♥</text> 
+										            <text class="like-count" :class="sub.isLiked ? 'color-active' : ''">{{ sub.likeCount || '赞' }}</text>
+										        </view>
+										    </view>
 										</view>
 										<view class="r-text-wrap">
 											<text v-if="sub.replyToNickname && sub.replyToUserId !== root.userId" class="reply-target">
@@ -224,6 +235,65 @@ export default {
 				}
 			});
 		},
+		// 1. 处理帖子举报
+		    handlePostOptions() {
+		        uni.showActionSheet({
+		            itemList: ['举报该动态'],
+		            itemColor: '#ff4d4f', // 红色警告色
+		            success: (res) => {
+		                if (res.tapIndex === 0) {
+		                    this.submitReport(this.postId, 'POST'); // 对应后端的 TargetType.POST
+		                }
+		            }
+		        });
+		    },
+		
+		    // 2. 处理评论举报
+		    handleCommentOptions(commentId) {
+		        uni.showActionSheet({
+		            itemList: ['举报该评论'],
+		            itemColor: '#ff4d4f',
+		            success: (res) => {
+		                if (res.tapIndex === 0) {
+		                    this.submitReport(commentId, 'COMMENT'); // 对应后端的 TargetType.COMMENT
+		                }
+		            }
+		        });
+		    },
+		
+		    // 3. 提交举报数据给后端
+		    submitReport(targetId, targetType) {
+		        const token = uni.getStorageSync('token');
+		        if (!token) {
+		            return uni.showToast({ title: '请先登录后操作', icon: 'none' });
+		        }
+		
+		        uni.showModal({
+		            title: '提示',
+		            content: '确定要举报该内容吗？多次被举报的内容将进入人工审核。',
+		            success: (modalRes) => {
+		                if (modalRes.confirm) {
+		                    uni.request({
+		                        url: 'http://localhost:8080/reports/user/add', // 修改为你的 reports 新增接口
+		                        method: 'POST',
+		                        header: { 'token': token },
+		                        data: {
+		                            targetId: targetId,
+		                            targetType: targetType,
+		                            reason: '涉嫌违规或引起不适' 
+		                        },
+		                        success: (res) => {
+		                            if (res.data.code === 200 || res.data.code === 1) { // 根据你后端的Result成功码判断
+		                                uni.showToast({ title: '举报已提交，感谢您的反馈', icon: 'none' });
+		                            } else {
+		                                uni.showToast({ title: res.data.msg || '举报失败', icon: 'none' });
+		                            }
+		                        }
+		                    });
+		                }
+		            }
+		        });
+		    },
 		toggleFavorite() {
 			// ... 保持原有逻辑
 			const token = uni.getStorageSync('token');
@@ -303,4 +373,14 @@ export default {
 .send-btn { margin-left: 20rpx; background-color: #42b983; color: white; font-size: 26rpx; padding: 12rpx 30rpx; border-radius: 30rpx; font-weight: bold; }
 .color-normal { color: #666; }
 .color-active { color: #42b983; font-weight: bold; }
+
+/* 帖子头部的更多按钮靠右对齐 */
+.author-header { display: flex; align-items: center; margin-bottom: 30rpx; position: relative; }
+.post-more-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); padding: 10rpx 20rpx; }
+.more-dot { color: #999; font-size: 36rpx; letter-spacing: 2rpx; font-weight: bold; }
+
+/* 评论区右上角操作按钮组合 */
+.action-right { display: flex; align-items: center; gap: 20rpx; }
+.report-text { font-size: 22rpx; color: #BBB; padding: 4rpx 10rpx; }
+.report-text:active { color: #ff4d4f; }
 </style>
