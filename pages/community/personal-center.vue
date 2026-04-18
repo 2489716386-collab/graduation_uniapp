@@ -34,108 +34,101 @@
 		<view class="personal-list">
 
 			<view v-show="personalTab === 'posts'">
-				<view v-if="myPostList.length === 0" class="empty-state">你还没有发布过动态哦~</view>
-				<view class="post-card" v-for="(post, index) in myPostList" :key="'p'+index"
-					@click="goToDetail(post.postId)">
-					<view class="post-header">
-						<image class="avatar" :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill">
-						</image>
-						<view class="user-info">
-							<text class="nickname">{{ userInfo.nickname }}</text>
-							<text class="time">{{ post.createTime }}</text>
-						</view>
-					</view>
-					<view class="post-body">
-						<text class="content-text">{{ post.content }}</text>
-						<view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
-								<image 
-									class="grid-img" 
-									v-for="(img, idx) in post.imageList" 
-									:key="idx" 
-									:src="img" 
-									mode="aspectFill"
-									@click.stop="previewImage(img, post.imageList)">
-								</image>
-							</view>
-					</view>
-					<view class="post-footer">
-						<view class="action-btn" @click.stop="toggleLikeForMyPost(post)">
-							<text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount || post.likes || 0 }}</text>
-						</view>
-						<view class="action-btn">
-							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
-						</view>
-						
-						<view class="action-btn" @click.stop="deleteMyPost(post.postId || post.id)">
-							<text style="color: #FF4D4F;">删除</text>
-						</view>
-					</view>
-				</view>
+			    <view v-if="myPostList.length === 0" class="empty-state">你还没有发布过动态哦~</view>
+			    
+			    <view class="post-card" v-for="(post, index) in myPostList" :key="'p'+index" @click="goToDetail(post.postId || post.id)">
+			        
+			        <view class="post-header">
+			            <image class="avatar" :src="userInfo.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+			            <view class="user-info">
+			                <text class="nickname">{{ userInfo.nickname }}</text>
+			                <text class="time">{{ post.createTime }}</text>
+			            </view>
+			        </view>
+			        
+			        <view class="post-body">
+			            <text class="content-text">{{ post.content }}</text>
+			            <view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+			                <image class="grid-img" v-for="(img, idx) in post.imageList" :key="idx" :src="img" mode="aspectFill" @click.stop="previewImage(img, post.imageList)"></image>
+			            </view>
+			        </view>
+			        
+			        <view class="post-footer">
+			            <view class="action-btn" @click.stop="toggleLikeForMyPost(post)">
+			                <text :class="post.isLiked ? 'color-active' : 'color-normal'">{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount || post.likes || 0 }}</text>
+			            </view>
+			            <view class="action-btn">
+			                <text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
+			            </view>
+			            <view class="action-btn" @click.stop="deleteMyPost(post.postId || post.id)">
+			                <text style="color: #FF4D4F;">删除</text>
+			            </view>
+			        </view>
+			        
+			    </view>
 			</view>
 
 			<view v-show="personalTab === 'likes'">
-				<view v-if="myLikeList.length === 0" class="empty-state">还没有喜欢的动态~</view>
-				<view class="post-card" v-for="(post, index) in myLikeList" :key="'l'+index"
-					@click="goToDetail(post.postId)">
-					<view class="post-header">
-						<image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill">
-						</image>
-						<view class="user-info">
-							<text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
-							<text class="time">{{ post.createTime }}</text>
-						</view>
-					</view>
-					<view class="post-body">
-						<text class="content-text">{{ post.content }}</text>
-					</view>
-					<view class="post-footer">
-						<view class="action-btn" @click.stop="toggleLikeInList(post, index, myLikeList)">
-							<view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
-							        <image 
-							            class="grid-img" 
-							            v-for="(img, idx) in post.imageList" 
-							            :key="idx" 
-							            :src="img" 
-							            mode="aspectFill"
-							            @click.stop="previewImage(img, post.imageList)">
-							        </image>
-							    </view>
-							<text class="color-active">已赞 {{ post.likeCount || post.likes || 0 }}</text>
-						</view>
-						<view class="action-btn">
-							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
-						</view>
-					</view>
-				</view>
+			    <view v-if="myLikeList.length === 0" class="empty-state">还没有喜欢的动态~</view>
+			    
+			    <view class="post-card" v-for="(post, index) in myLikeList" :key="'l'+index" @click="goToDetail(post.postId || post.id)">
+			        <view class="post-header">
+			            <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+			            <view class="user-info">
+			                <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
+			                <text class="time">{{ post.createTime }}</text>
+			            </view>
+			        </view>
+			        
+			        <view class="post-body">
+			            <text class="content-text">{{ post.content }}</text>
+			            <view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+			                <image class="grid-img" v-for="(img, idx) in post.imageList" :key="idx" :src="img" mode="aspectFill" @click.stop="previewImage(img, post.imageList)"></image>
+			            </view>
+			        </view>
+			        
+			        <view class="post-footer">
+			            <view class="action-btn" @click.stop="toggleLikeInList(post, index, myLikeList)">
+			                <text class="color-active">已赞</text>
+			            </view>
+			            <view class="action-btn">
+			                <text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
+			            </view>
+			        </view>
+			    </view>
 			</view>
 
 			<view v-show="personalTab === 'favorites'">
-				<view v-if="myFavList.length === 0" class="empty-state">还没有收藏的动态~</view>
-				<view class="post-card" v-for="(post, index) in myFavList" :key="'f'+index"
-					@click="goToDetail(post.postId)">
-					<view class="post-header">
-						<image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill">
-						</image>
-						<view class="user-info">
-							<text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
-							<text class="time">{{ post.createTime }}</text>
-						</view>
-					</view>
-					<view class="post-body">
-						<text class="content-text">{{ post.content }}</text>
-					</view>
-					<view class="post-footer">
-						<view class="action-btn">
-							<text class="color-normal">点赞 {{ post.likeCount || post.likes || 0 }}</text>
-						</view>
-						<view class="action-btn">
-							<text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
-						</view>
-						<view class="action-btn" @click.stop="toggleFavoriteInList(post, index, myFavList)">
-							<text class="color-active">已收藏</text>
-						</view>
-					</view>
-				</view>
+			    <view v-if="myFavList.length === 0" class="empty-state">你还没有收藏过动态哦~</view>
+			    
+			    <view class="post-card" v-for="(post, index) in myFavList" :key="'f'+index" @click="goToDetail(post.postId || post.id)">
+			        <view class="post-header">
+			            <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+			            <view class="user-info">
+			                <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
+			                <text class="time">{{ post.createTime }}</text>
+			            </view>
+			        </view>
+			        
+			        <view class="post-body">
+			            <text class="content-text">{{ post.content }}</text>
+			            <view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+			                <image class="grid-img" v-for="(img, idx) in post.imageList" :key="idx" :src="img" mode="aspectFill" @click.stop="previewImage(img, post.imageList)"></image>
+			            </view>
+			        </view>
+			        
+			        <view class="post-footer">
+			            <view class="action-btn">
+			                <text class="color-normal">点赞 {{ post.likeCount || post.likes || 0 }}</text>
+			            </view>
+			            <view class="action-btn">
+			                <text class="color-normal">评论 {{ post.commentCount || post.comments || 0 }}</text>
+			            </view>
+			            <view class="action-btn" @click.stop="toggleFavoriteInList(post, index, myFavList)">
+			                <text class="color-active">取消收藏</text>
+			            </view>
+			        </view>
+			    </view>
 			</view>
 
 		</view>
@@ -156,6 +149,10 @@
 					signature: "登录后查看更多精彩内容~",
 					coverImage: "https://mp-aa1e3790-0b44-4bfc-afa7-9b9be364f376.cdn.bspapp.com/cloudstorage/f07035fc-384f-4743-b642-32109a13f0ff.jpg"
 				},
+				// 👇 新增这三个用来控制分页的变量 👇
+				    postPage: 1,      // 当前页码
+				    isPostLoading: false, // 请求锁：是否正在加载中
+				    isPostFinished: false, // 触底锁：是否已经加载完所有数据
 				myPostList: [],
 				myPostPage: 1,
 				myLikeList: [],
@@ -170,8 +167,11 @@
 		},
 
 		// 2. 页面滑动到底部时触发（调用你写好的 loadMore 方法实现分页加载）
+		// 这是一个与 data() 和 methods 平级的页面生命周期函数
 		onReachBottom() {
-			this.loadMore();
+		  if (this.personalTab === 'posts') {
+		    this.fetchMyPosts(false); // 往下滑加载更多，不是刷新
+		  }
 		},
 		methods: {
 			refresh() {
@@ -327,29 +327,52 @@
 					}
 				});
 			},
-			fetchMyPosts(isRefresh = false) {
-				if (isRefresh) {
-					this.myPostPage = 1;
-					this.myPostList = [];
-				}
-				uni.request({
-					url: `http://localhost:8080/community-posts/user/my?pageNum=${this.myPostPage}&pageSize=10`,
-					method: 'GET',
-					header: {
-						'token': uni.getStorageSync('token')
-					},
-					success: (res) => {
-						if (this.handleAuthError(res)) return;
-						if (res.data.code === 200) {
-							// 1. 取出 records 数组，并交给 processPostData 处理
-							const newPosts = this.processPostData(res.data.data.records);
-							// 2. 追加到现有列表，保证上拉加载功能正常
-							this.myPostList = this.myPostList.concat(newPosts);
-							this.myPostPage++;
-						}
-					}
-				});
-			},
+			async fetchMyPosts(isRefresh = false) {
+			    // 如果是下拉刷新，重置所有状态
+			    if (isRefresh) {
+			      this.postPage = 1;
+			      this.isPostFinished = false;
+			      this.myPostList = [];
+			    }
+			
+			    // 第一把锁：如果正在加载，或者已经没有更多数据了，直接拦截！
+			    if (this.isPostLoading || this.isPostFinished) {
+			      return; 
+			    }
+			
+			    this.isPostLoading = true; // 上锁：开始请求
+			
+			    try {
+			      // 这里的 url 替换成你实际的获取我的动态接口
+			      const res = await uni.request({
+			        url: `http://localhost:8080/community-posts/user/my?pageNum=${this.postPage}&pageSize=10`,
+			        method: 'GET',
+			        header: { 'token': uni.getStorageSync('token') }
+			      });
+			
+			      if (res.data.code === 200 || res.data.code === 1) {
+			        const newPosts = res.data.data.records || res.data.data;
+			
+			        // 第二把锁：判断是否已经拿完了所有数据
+			        if (!newPosts || newPosts.length === 0) {
+			          this.isPostFinished = true; // 标记为已完成，下次往下滑再也不会发请求了
+			        } else {
+			          // 第三把锁：终极去重！只把当前数组里没有的帖子 push 进去
+			          const existingIds = new Set(this.myPostList.map(item => item.postId || item.id));
+			          const uniquePosts = newPosts.filter(item => !existingIds.has(item.postId || item.id));
+			          
+			          this.myPostList.push(...uniquePosts);
+			          
+			          // 只有请求到了数据，页码才加 1
+			          this.postPage++;
+			        }
+			      }
+			    } catch (e) {
+			      console.error("获取动态失败", e);
+			    } finally {
+			      this.isPostLoading = false; // 解锁：无论成功失败，请求结束就释放锁
+			    }
+			  },
 			fetchMyLikes(isRefresh = false) {
 				if (isRefresh) {
 					this.myLikePage = 1;
