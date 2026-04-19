@@ -357,6 +357,23 @@
 			        if (!newPosts || newPosts.length === 0) {
 			          this.isPostFinished = true; // 标记为已完成，下次往下滑再也不会发请求了
 			        } else {
+						const formattedPosts = newPosts.map(post => {
+						      let images = [];
+						      if (post.mediaUrls) {
+						        try {
+						          // 尝试按 JSON 数组解析
+						          images = JSON.parse(post.mediaUrls);
+						        } catch (e) {
+						          // 如果不是 JSON，尝试按逗号分隔解析
+						          if (typeof post.mediaUrls === 'string') {
+						             images = post.mediaUrls.split(',').filter(url => url.trim() !== '');
+						          }
+						        }
+						      }
+						      // 将解析好的图片数组塞回对象中，命名为 imageList
+						      return { ...post, imageList: images };
+						    });
+						
 			          // 第三把锁：终极去重！只把当前数组里没有的帖子 push 进去
 			          const existingIds = new Set(this.myPostList.map(item => item.postId || item.id));
 			          const uniquePosts = newPosts.filter(item => !existingIds.has(item.postId || item.id));

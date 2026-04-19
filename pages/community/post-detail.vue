@@ -9,16 +9,32 @@
 		</view>
 
 		<view v-else class="post-content">
-			<view class="author-header">
-			    <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
-			    <view class="info">
-			        <text class="nickname">{{ post.nickname || '用户_' + post.userId }}</text>
-			        <text class="time">{{ post.createTime }}</text>
-			    </view>
-				<view class="post-more-btn" @click="handlePostOptions">
-				        <text class="more-dot">•••</text>
-				    </view>
-			</view>
+		    <view class="author-header">
+		        <image class="avatar" :src="post.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+		        <view class="info">
+		            <text class="nickname">{{ post.nickname || '用户_' + (post.userId || '') }}</text>
+		            <text class="time">{{ post.createTime }}</text>
+		        </view>
+		        <view class="post-more-btn" @click="handlePostOptions">
+		            <text class="more-dot">•••</text>
+		        </view>
+		    </view>
+		
+		    <view class="post-body">
+		        <text class="content-text">{{ post.content }}</text>
+		        
+		        <view class="image-grid" v-if="post.imageList && post.imageList.length > 0">
+		            <image 
+		                class="grid-img" 
+		                v-for="(img, idx) in post.imageList" 
+		                :key="idx" 
+		                :src="img" 
+		                mode="aspectFill" 
+		                @click.stop="previewImage(img, post.imageList)"
+		            ></image>
+		        </view>
+		    </view>
+		</view>
 
 			<view class="body-text">
 				<text>{{ post.content }}</text>
@@ -113,7 +129,6 @@
 			</view>
 			<view class="send-btn" v-else @click="submitComment">发送</view>
 		</view>
-	</view>
 </template>
 
 <script>
@@ -204,6 +219,33 @@ export default {
 				}
 			});
 		},
+		getPostDetail(id) {
+		    uni.request({
+		      url: `http://localhost:8080/community-posts/${id}`, // 你的详情接口
+		      method: 'GET',
+		      header: { 'token': uni.getStorageSync('token') },
+		      success: (res) => {
+		        if (res.data.code === 200 || res.data.code === 1) {
+		          let postData = res.data.data;
+		          
+		          // 👇 新增：解析单条动态的图片
+		          let images = [];
+		          if (postData.mediaUrls) {
+		            try {
+		              images = JSON.parse(postData.mediaUrls);
+		            } catch (e) {
+		              if (typeof postData.mediaUrls === 'string') {
+		                 images = postData.mediaUrls.split(',').filter(url => url.trim() !== '');
+		              }
+		            }
+		          }
+		          postData.imageList = images; // 挂载解析后的数组
+		          
+		          this.post = postData; // 赋值给页面变量
+		        }
+		      }
+		    });
+		  },
 		// 🚀 新增：评论区专属点赞功能 (前端乐观更新体验)
 		likeComment(comment) {
 			const token = uni.getStorageSync('token');
@@ -383,4 +425,26 @@ export default {
 .action-right { display: flex; align-items: center; gap: 20rpx; }
 .report-text { font-size: 22rpx; color: #BBB; padding: 4rpx 10rpx; }
 .report-text:active { color: #ff4d4f; }
+.post-body {
+    margin-top: 20rpx;
+}
+.content-text {
+    font-size: 30rpx;
+    line-height: 1.6;
+    color: #333;
+    display: block;
+    margin-bottom: 20rpx;
+}
+/* 图片九宫格布局 */
+.image-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
+}
+.grid-img {
+    width: 220rpx;
+    height: 220rpx;
+    border-radius: 12rpx;
+    background-color: #f8f8f8;
+}
 </style>
