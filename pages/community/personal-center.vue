@@ -357,31 +357,27 @@
 			        if (!newPosts || newPosts.length === 0) {
 			          this.isPostFinished = true; // 标记为已完成，下次往下滑再也不会发请求了
 			        } else {
-						const formattedPosts = newPosts.map(post => {
-						      let images = [];
-						      if (post.mediaUrls) {
-						        try {
-						          // 尝试按 JSON 数组解析
-						          images = JSON.parse(post.mediaUrls);
-						        } catch (e) {
-						          // 如果不是 JSON，尝试按逗号分隔解析
-						          if (typeof post.mediaUrls === 'string') {
-						             images = post.mediaUrls.split(',').filter(url => url.trim() !== '');
-						          }
-						        }
-						      }
-						      // 将解析好的图片数组塞回对象中，命名为 imageList
-						      return { ...post, imageList: images };
-						    });
+						// 尝试调用已有的 processPostData，如果没有该方法，则手动解析 mediaUrls
+						        const formattedPosts = this.processPostData ? this.processPostData(newPosts) : newPosts.map(post => {
+						            let images = [];
+						            if (post.mediaUrls) {
+						                try {
+						                    images = JSON.parse(post.mediaUrls);
+						                } catch (e) {
+						                    if (typeof post.mediaUrls === 'string') {
+						                        images = post.mediaUrls.split(',').filter(url => url.trim() !== '');
+						                    }
+						                }
+						            }
+						            return { ...post, imageList: images }; // 挂载到 imageList
+						        });
 						
-			          // 第三把锁：终极去重！只把当前数组里没有的帖子 push 进去
-			          const existingIds = new Set(this.myPostList.map(item => item.postId || item.id));
-			          const uniquePosts = newPosts.filter(item => !existingIds.has(item.postId || item.id));
-			          
-			          this.myPostList.push(...uniquePosts);
-			          
-			          // 只有请求到了数据，页码才加 1
-			          this.postPage++;
+						        // 基于解析后的数据去重并追加
+						        const existingIds = new Set(this.myPostList.map(item => item.postId || item.id));
+						        const uniquePosts = formattedPosts.filter(item => !existingIds.has(item.postId || item.id));
+						        
+						        this.myPostList.push(...uniquePosts);
+						        this.postPage++;
 			        }
 			      }
 			    } catch (e) {

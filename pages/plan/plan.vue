@@ -1,56 +1,70 @@
 <template>
 	<view class="container">
-		<view class="header">请选择要查看计划的宠物</view>
+		
+		<view class="empty-state" v-if="!isLoggedIn">
+			<image class="empty-img" src="/static/images/empty-notice.png" mode="aspectFit"></image>
+			<text class="empty-text">您尚未登录，无法查看宠物关爱计划</text>
+			<button class="login-btn" @click="goToLogin">立即登录</button>
+		</view>
 
-		<view class="pet-list">
-			<view class="pet-group" v-for="(pet, index) in petList" :key="pet.petid || index">
-				<view class="pet-card" @click="goToDetail(pet)">
-					<image class="avatar" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
-					<view class="info">
-						<view class="name-row">
-							<text class="name">{{ pet.name }}</text>
-						</view>
-						<text class="desc">
-							{{ pet.breedName }} · {{ pet.age }}岁
-						</text>
-					</view>
-					<text class="arrow">❯</text>
-				</view>
+		<block v-else>
+			<view class="header">请选择要查看计划的宠物</view>
 
-				<view class="todo-section">
-					<view class="todo-header">
-						<text class="todo-title">今日待办事项</text>
-					</view>
-
-					<view class="task-list" v-if="pet.tasks && pet.tasks.length > 0">
-						<view class="task-item" v-for="(task, tIndex) in pet.tasks" :key="task.id">
-							<view class="task-left">
-								<view class="task-dot" :class="{ completed: task.isCompleted === 1 }"></view>
-								<view class="task-text-content">
-									<text class="task-name" :class="{ 'text-grey': task.isCompleted === 1 }">
-										[{{ task.taskCategory }}] {{ task.taskContent }}
-									</text>
-									<text class="complete-time" v-if="task.isCompleted === 1 && task.completeTime">
-										打卡于 {{ formatTime(task.completeTime) }}
-									</text>
-								</view>
+			<view class="pet-list" v-if="petList.length > 0">
+				<view class="pet-group" v-for="(pet, index) in petList" :key="pet.petid || index">
+					<view class="pet-card" @click="goToDetail(pet)">
+						<image class="avatar" :src="pet.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+						<view class="info">
+							<view class="name-row">
+								<text class="name">{{ pet.name }}</text>
 							</view>
-							<button 
-								class="check-btn" 
-								:disabled="task.isCompleted === 1" 
-								@click="handleCheckIn(task)"
-							>
-								{{ task.isCompleted === 1 ? '已完成' : '打卡' }}
-							</button>
+							<text class="desc">
+								{{ pet.breedName }} · {{ pet.age }}岁
+							</text>
 						</view>
+						<text class="arrow">❯</text>
 					</view>
-					
-					<view class="no-task" v-else>
-						<text>今日暂无养护任务</text>
+
+					<view class="todo-section">
+						<view class="todo-header">
+							<text class="todo-title">今日待办事项</text>
+						</view>
+
+						<view class="task-list" v-if="pet.tasks && pet.tasks.length > 0">
+							<view class="task-item" v-for="(task, tIndex) in pet.tasks" :key="task.id">
+								<view class="task-left">
+									<view class="task-dot" :class="{ completed: task.isCompleted === 1 }"></view>
+									<view class="task-text-content">
+										<text class="task-name" :class="{ 'text-grey': task.isCompleted === 1 }">
+											[{{ task.taskCategory }}] {{ task.taskContent }}
+										</text>
+										<text class="complete-time" v-if="task.isCompleted === 1 && task.completeTime">
+											打卡于 {{ formatTime(task.completeTime) }}
+										</text>
+									</view>
+								</view>
+								<button 
+									class="check-btn" 
+									:disabled="task.isCompleted === 1" 
+									@click="handleCheckIn(task)"
+								>
+									{{ task.isCompleted === 1 ? '已完成' : '打卡' }}
+								</button>
+							</view>
+						</view>
+						
+						<view class="no-task" v-else>
+							<text>今日暂无养护任务</text>
+						</view>
 					</view>
 				</view>
 			</view>
-		</view>
+
+			<view class="empty-state" v-else>
+				<text class="empty-text">您还没有添加任何宠物，快去添加吧</text>
+			</view>
+		</block>
+		
 	</view>
 </template>
 
@@ -58,18 +72,36 @@
 export default {
 	data() {
 		return {
-			petList: []
+			petList: [],
+			isLoggedIn: false // 新增：用于标记用户是否已登录
 		};
 	},
 	onShow() {
-		this.fetchPetsAndTasks();
+		this.checkLoginStatus();
 	},
 	methods: {
+		// 检查登录状态
+		checkLoginStatus() {
+			const token = uni.getStorageSync('token');
+			if (token) {
+				this.isLoggedIn = true;
+				this.fetchPetsAndTasks(); // 有 token 才去请求数据
+			} else {
+				this.isLoggedIn = false;
+				this.petList = []; // 清空可能残留的数据
+			}
+		},
+
+		// 跳转到登录页
+		goToLogin() {
+			uni.navigateTo({
+				url: '/pages/login/login'
+			});
+		},
+
 		// 1. 获取宠物及其今日任务
 		async fetchPetsAndTasks() {
 			const token = uni.getStorageSync('token');
-			if (!token) return;
-
 			try {
 				const res = await uni.request({
 					url: 'http://localhost:8080/pets/user/list',
@@ -136,8 +168,43 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .container { padding: 15px; background: #f8f8f8; min-height: 100vh; }
+
+/* ======== 新增的空状态样式 ======== */
+.empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding-top: 200rpx;
+}
+.empty-img {
+	width: 300rpx;
+	height: 300rpx;
+	margin-bottom: 30rpx;
+}
+.empty-text {
+	font-size: 28rpx;
+	color: #999;
+	margin-bottom: 50rpx;
+}
+.login-btn {
+	width: 280rpx;
+	height: 80rpx;
+	line-height: 80rpx;
+	background-color: #42b983;
+	color: #fff;
+	border-radius: 40rpx;
+	font-size: 30rpx;
+	text-align: center;
+	box-shadow: 0 4rpx 10rpx rgba(66, 185, 131, 0.3);
+}
+.login-btn::after {
+	border: none;
+}
+/* ================================ */
+
 .header { font-size: 14px; color: #999; margin-bottom: 15px; padding-left: 5px; }
 
 .pet-group { 

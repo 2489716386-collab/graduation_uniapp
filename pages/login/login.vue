@@ -172,9 +172,31 @@
 			},
 
 			goBack() {
-				uni.switchTab({
-					url: '/pages/index/index'
-				});
+			    // 1. 核心修复：清除本地可能残留的失效 Token，确保彻底进入纯“游客模式”，防止无限拦截死循环
+			    uni.removeStorageSync('token');
+			    
+			    // 如果你有缓存用户信息，建议也一并清除
+			    uni.removeStorageSync('userInfo'); 
+			
+			    // 2. 路由体验优化：优先尝试返回上一页
+			    const pages = getCurrentPages();
+			    if (pages.length > 1) {
+			        // 如果有上一页（说明是从业务页面被拦截过来的），直接后退
+			        uni.navigateBack({
+			            delta: 1,
+			            fail: () => {
+			                // 如果 navigateBack 因为某些原因失败（比如 tabBar 限制），兜底回首页
+			                uni.switchTab({
+			                    url: '/pages/index/index'
+			                });
+			            }
+			        });
+			    } else {
+			        // 如果没有上一页（比如小程序启动时强制判断未登录直接首屏进入登录页），则跳转首页
+			        uni.switchTab({
+			            url: '/pages/index/index'
+			        });
+			    }
 			}
 		}
 	}

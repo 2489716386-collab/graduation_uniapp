@@ -34,78 +34,72 @@
 		            ></image>
 		        </view>
 		    </view>
-		</view>
-
-			<view class="body-text">
-				<text>{{ post.content }}</text>
-			</view>
 
 			<view class="tags-wrap" v-if="tagsArray.length > 0">
 				<text class="tag" v-for="(tag, index) in tagsArray" :key="index">#{{ tag }}</text>
 			</view>
 
 			<view class="post-stats">
-				<text class="stat-item">浏览 {{ post.viewCount || Math.floor(Math.random() * 100) }}</text>
 				<text class="stat-item">点赞 {{ post.likeCount || 0 }}</text>
 				<text class="stat-item">评论 {{ post.commentCount || 0 }}</text>
 			</view>
+		</view>
 
-			<view class="divider"></view>
+		<view class="divider"></view>
 
-			<view class="comment-section">
-				<view class="comment-title">全部评论 ({{ post.commentCount || 0 }})</view>
-				
-				<view v-if="commentList.length === 0" class="empty-comment">
-					<text>还没有人评论，快来抢沙发吧~</text>
-				</view>
+		<view class="comment-section">
+			<view class="comment-title">全部评论 ({{ post ? post.commentCount || 0 : 0 }})</view>
+			
+			<view v-if="commentList.length === 0" class="empty-comment">
+				<text>还没有人评论，快来抢沙发吧~</text>
+			</view>
 
-				<view class="comment-list" v-else>
-					<view class="comment-item" v-for="(root, index) in commentList" :key="root.commentId">
-						<image class="c-avatar" :src="root.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
-						
-						<view class="c-content-wrap">
-							<view class="c-main-box" @click="prepareReply(root.commentId, root.nickname)">
-								<view class="c-user">
-								    <text class="c-nickname">{{ root.nickname }}</text>
-								    <view class="action-right">
-								        <text class="report-text" @click.stop="handleCommentOptions(root.commentId)">举报</text>
-								        
-								        <view class="c-like-btn" @click.stop="likeComment(root)">
-								            <text :class="root.isLiked ? 'color-active' : ''">♥</text> 
-								            <text class="like-count" :class="root.isLiked ? 'color-active' : ''">{{ root.likeCount || '赞' }}</text>
-								        </view>
-								    </view>
-								</view>
-								<text class="c-text">{{ root.content }}</text>
-								<text class="c-time">{{ root.createTime }}</text>
+			<view class="comment-list" v-else>
+				<view class="comment-item" v-for="(root, index) in commentList" :key="root.commentId">
+					<image class="c-avatar" :src="root.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+					
+					<view class="c-content-wrap">
+						<view class="c-main-box" @click="prepareReply(root.commentId, root.nickname)">
+							<view class="c-user">
+							    <text class="c-nickname">{{ root.nickname }}</text>
+							    <view class="action-right">
+							        <text class="report-text" @click.stop="handleCommentOptions(root.commentId)">举报</text>
+							        
+							        <view class="c-like-btn" @click.stop="likeComment(root)">
+							            <text :class="root.isLiked ? 'color-active' : ''">♥</text> 
+							            <text class="like-count" :class="root.isLiked ? 'color-active' : ''">{{ root.likeCount || '赞' }}</text>
+							        </view>
+							    </view>
 							</view>
+							<text class="c-text">{{ root.content }}</text>
+							<text class="c-time">{{ root.createTime }}</text>
+						</view>
 
-							<view class="replies-box" v-if="root.replies && root.replies.length > 0">
-								<view class="reply-item" 
-									  v-for="(sub, subIndex) in root.replies" 
-									  :key="sub.commentId"
-									  @click="prepareReply(sub.commentId, sub.nickname)"> <image class="r-avatar" :src="sub.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
-									
-									<view class="r-content">
-										<view class="r-user">
-										    <text class="r-nickname">{{ sub.nickname }}</text>
-										    <view class="action-right">
-										        <text class="report-text" @click.stop="handleCommentOptions(sub.commentId)">举报</text>
-										        
-										        <view class="c-like-btn" @click.stop="likeComment(sub)">
-										            <text :class="sub.isLiked ? 'color-active' : ''">♥</text> 
-										            <text class="like-count" :class="sub.isLiked ? 'color-active' : ''">{{ sub.likeCount || '赞' }}</text>
-										        </view>
-										    </view>
-										</view>
-										<view class="r-text-wrap">
-											<text v-if="sub.replyToNickname && sub.replyToUserId !== root.userId" class="reply-target">
-												回复 @{{ sub.replyToNickname }}: 
-											</text>
-											<text class="r-text">{{ sub.content }}</text>
-										</view>
-										<text class="r-time">{{ sub.createTime }}</text>
+						<view class="replies-box" v-if="root.replies && root.replies.length > 0">
+							<view class="reply-item" 
+								  v-for="(sub, subIndex) in root.replies" 
+								  :key="sub.commentId"
+								  @click="prepareReply(sub.commentId, sub.nickname)"> 
+								<image class="r-avatar" :src="sub.avatar || '/static/default-avatar.png'" mode="aspectFill"></image>
+								<view class="r-content">
+									<view class="r-user">
+									    <text class="r-nickname">{{ sub.nickname }}</text>
+									    <view class="action-right">
+									        <text class="report-text" @click.stop="handleCommentOptions(sub.commentId)">举报</text>
+									        
+									        <view class="c-like-btn" @click.stop="likeComment(sub)">
+									            <text :class="sub.isLiked ? 'color-active' : ''">♥</text> 
+									            <text class="like-count" :class="sub.isLiked ? 'color-active' : ''">{{ sub.likeCount || '赞' }}</text>
+									        </view>
+									    </view>
 									</view>
+									<view class="r-text-wrap">
+										<text v-if="sub.replyToNickname && sub.replyToUserId !== root.userId" class="reply-target">
+											回复 @{{ sub.replyToNickname }}: 
+										</text>
+										<text class="r-text">{{ sub.content }}</text>
+									</view>
+									<text class="r-time">{{ sub.createTime }}</text>
 								</view>
 							</view>
 						</view>
@@ -129,6 +123,7 @@
 			</view>
 			<view class="send-btn" v-else @click="submitComment">发送</view>
 		</view>
+	</view>
 </template>
 
 <script>
@@ -163,8 +158,23 @@ export default {
 				header: { 'token': uni.getStorageSync('token') },
 				success: (res) => {
 					this.isLoading = false;
-					if (res.data.code === 200) {
-						this.post = res.data.data;
+					if (res.data.code === 200 || res.data.code === 1) {
+						let postData = res.data.data;
+						
+						// 解析图片
+						let images = [];
+						if (postData.mediaUrls) {
+							try {
+								images = JSON.parse(postData.mediaUrls);
+							} catch (e) {
+								if (typeof postData.mediaUrls === 'string') {
+									images = postData.mediaUrls.split(',').filter(url => url.trim() !== '');
+								}
+							}
+						}
+						postData.imageList = images;
+						
+						this.post = postData;
 						if (this.post.tags) this.tagsArray = this.post.tags.split(',');
 					}
 				}
@@ -179,6 +189,12 @@ export default {
 						this.commentList = res.data.data;
 					}
 				}
+			});
+		},
+		previewImage(current, urls) {
+			uni.previewImage({
+				current: current,
+				urls: urls
 			});
 		},
 		prepareReply(parentId, nickname) {
@@ -219,39 +235,10 @@ export default {
 				}
 			});
 		},
-		getPostDetail(id) {
-		    uni.request({
-		      url: `http://localhost:8080/community-posts/${id}`, // 你的详情接口
-		      method: 'GET',
-		      header: { 'token': uni.getStorageSync('token') },
-		      success: (res) => {
-		        if (res.data.code === 200 || res.data.code === 1) {
-		          let postData = res.data.data;
-		          
-		          // 👇 新增：解析单条动态的图片
-		          let images = [];
-		          if (postData.mediaUrls) {
-		            try {
-		              images = JSON.parse(postData.mediaUrls);
-		            } catch (e) {
-		              if (typeof postData.mediaUrls === 'string') {
-		                 images = postData.mediaUrls.split(',').filter(url => url.trim() !== '');
-		              }
-		            }
-		          }
-		          postData.imageList = images; // 挂载解析后的数组
-		          
-		          this.post = postData; // 赋值给页面变量
-		        }
-		      }
-		    });
-		  },
-		// 🚀 新增：评论区专属点赞功能 (前端乐观更新体验)
 		likeComment(comment) {
 			const token = uni.getStorageSync('token');
 			if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
 			
-			// 因为评论点赞的后端接口还没写，这里先做纯前端动态效果，让你体验
 			if(comment.isLiked) {
 				comment.likeCount = Math.max(0, (comment.likeCount || 0) - 1);
 				comment.isLiked = false;
@@ -262,7 +249,6 @@ export default {
 			}
 		},
 		toggleLike() {
-			// ... 保持原有逻辑
 			const token = uni.getStorageSync('token');
 			if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
 			uni.request({
@@ -277,67 +263,61 @@ export default {
 				}
 			});
 		},
-		// 1. 处理帖子举报
-		    handlePostOptions() {
-		        uni.showActionSheet({
-		            itemList: ['举报该动态'],
-		            itemColor: '#ff4d4f', // 红色警告色
-		            success: (res) => {
-		                if (res.tapIndex === 0) {
-		                    this.submitReport(this.postId, 'POST'); // 对应后端的 TargetType.POST
-		                }
+		handlePostOptions() {
+		    uni.showActionSheet({
+		        itemList: ['举报该动态'],
+		        itemColor: '#ff4d4f', 
+		        success: (res) => {
+		            if (res.tapIndex === 0) {
+		                this.submitReport(this.postId, 'POST'); 
 		            }
-		        });
-		    },
-		
-		    // 2. 处理评论举报
-		    handleCommentOptions(commentId) {
-		        uni.showActionSheet({
-		            itemList: ['举报该评论'],
-		            itemColor: '#ff4d4f',
-		            success: (res) => {
-		                if (res.tapIndex === 0) {
-		                    this.submitReport(commentId, 'COMMENT'); // 对应后端的 TargetType.COMMENT
-		                }
-		            }
-		        });
-		    },
-		
-		    // 3. 提交举报数据给后端
-		    submitReport(targetId, targetType) {
-		        const token = uni.getStorageSync('token');
-		        if (!token) {
-		            return uni.showToast({ title: '请先登录后操作', icon: 'none' });
 		        }
-		
-		        uni.showModal({
-		            title: '提示',
-		            content: '确定要举报该内容吗？多次被举报的内容将进入人工审核。',
-		            success: (modalRes) => {
-		                if (modalRes.confirm) {
-		                    uni.request({
-		                        url: 'http://localhost:8080/reports/user/add', // 修改为你的 reports 新增接口
-		                        method: 'POST',
-		                        header: { 'token': token },
-		                        data: {
-		                            targetId: targetId,
-		                            targetType: targetType,
-		                            reason: '涉嫌违规或引起不适' 
-		                        },
-		                        success: (res) => {
-		                            if (res.data.code === 200 || res.data.code === 1) { // 根据你后端的Result成功码判断
-		                                uni.showToast({ title: '举报已提交，感谢您的反馈', icon: 'none' });
-		                            } else {
-		                                uni.showToast({ title: res.data.msg || '举报失败', icon: 'none' });
-		                            }
-		                        }
-		                    });
-		                }
+		    });
+		},
+		handleCommentOptions(commentId) {
+		    uni.showActionSheet({
+		        itemList: ['举报该评论'],
+		        itemColor: '#ff4d4f',
+		        success: (res) => {
+		            if (res.tapIndex === 0) {
+		                this.submitReport(commentId, 'COMMENT'); 
 		            }
-		        });
-		    },
+		        }
+		    });
+		},
+		submitReport(targetId, targetType) {
+		    const token = uni.getStorageSync('token');
+		    if (!token) {
+		        return uni.showToast({ title: '请先登录后操作', icon: 'none' });
+		    }
+		
+		    uni.showModal({
+		        title: '提示',
+		        content: '确定要举报该内容吗？多次被举报的内容将进入人工审核。',
+		        success: (modalRes) => {
+		            if (modalRes.confirm) {
+		                uni.request({
+		                    url: 'http://localhost:8080/reports/user/add', 
+		                    method: 'POST',
+		                    header: { 'token': token },
+		                    data: {
+		                        targetId: targetId,
+		                        targetType: targetType,
+		                        reason: '涉嫌违规或引起不适' 
+		                    },
+		                    success: (res) => {
+		                        if (res.data.code === 200 || res.data.code === 1) { 
+		                            uni.showToast({ title: '举报已提交，感谢您的反馈', icon: 'none' });
+		                        } else {
+		                            uni.showToast({ title: res.data.msg || '举报失败', icon: 'none' });
+		                        }
+		                    }
+		                });
+		            }
+		        }
+		    });
+		},
 		toggleFavorite() {
-			// ... 保持原有逻辑
 			const token = uni.getStorageSync('token');
 			if (!token) return uni.showToast({ title: '请先登录', icon: 'none' });
 			uni.request({
@@ -357,25 +337,21 @@ export default {
 </script>
 
 <style scoped>
-/* 原有基础样式... */
 .detail-container { min-height: 100vh; background-color: #FFFFFF; padding-bottom: 120rpx; }
 .loading-state, .error-state { text-align: center; padding-top: 200rpx; color: #999; }
 .post-content { padding: 30rpx; }
-.author-header { display: flex; align-items: center; margin-bottom: 30rpx; }
+.author-header { display: flex; align-items: center; margin-bottom: 30rpx; position: relative; }
 .avatar { width: 80rpx; height: 80rpx; border-radius: 50%; margin-right: 20rpx; background-color: #f0f0f0; flex-shrink: 0; }
 .info { display: flex; flex-direction: column; }
 .nickname { font-size: 32rpx; font-weight: bold; color: #333; }
 .time { font-size: 24rpx; color: #999; margin-top: 6rpx; }
-.body-text { font-size: 32rpx; color: #333; line-height: 1.8; margin-bottom: 20rpx; word-break: break-all; }
 .tags-wrap { display: flex; flex-wrap: wrap; gap: 16rpx; margin-bottom: 30rpx; }
 .tag { font-size: 24rpx; color: #42b983; background-color: rgba(66, 185, 131, 0.1); padding: 6rpx 24rpx; border-radius: 30rpx; }
 
-/* 🚀 新增：正文下方数据统计 */
 .post-stats { display: flex; gap: 40rpx; margin-bottom: 30rpx; font-size: 26rpx; color: #999; }
 
 .divider { height: 16rpx; background-color: #F8F8F8; margin: 0 -30rpx 30rpx -30rpx; }
 
-/* 树形评论区样式 */
 .comment-title { font-size: 30rpx; font-weight: bold; color: #333; margin-bottom: 30rpx; }
 .empty-comment { text-align: center; padding: 60rpx 0; color: #999; font-size: 28rpx; }
 
@@ -388,11 +364,9 @@ export default {
 .c-text { font-size: 28rpx; color: #333; line-height: 1.5; word-break: break-all; }
 .c-time { font-size: 22rpx; color: #CCC; margin-top: 8rpx; display: block; }
 
-/* 🚀 新增：评论点赞按钮样式 */
 .c-like-btn { font-size: 24rpx; color: #999; display: flex; align-items: center; padding: 10rpx; }
 .like-count { margin-left: 6rpx; }
 
-/* 二级评论(楼中楼) */
 .replies-box { background-color: #F9F9F9; border-radius: 12rpx; padding: 20rpx; }
 .reply-item { display: flex; margin-bottom: 20rpx; }
 .reply-item:last-child { margin-bottom: 0; }
@@ -405,7 +379,6 @@ export default {
 .r-text { color: #333; }
 .r-time { font-size: 20rpx; color: #CCC; margin-top: 6rpx; display: block; }
 
-/* 底部栏 */
 .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 110rpx; background-color: #FFFFFF; border-top: 2rpx solid #EEEEEE; display: flex; align-items: center; padding: 0 30rpx; box-sizing: border-box; z-index: 99; padding-bottom: env(safe-area-inset-bottom); }
 .comment-input-wrap { flex: 1; background-color: #F5F5F5; height: 70rpx; border-radius: 35rpx; display: flex; align-items: center; padding: 0 30rpx; transition: all 0.3s; }
 .cancel-reply { color: #999; font-size: 24rpx; margin-right: 16rpx; padding-right: 16rpx; border-right: 2rpx solid #E0E0E0; }
@@ -416,35 +389,14 @@ export default {
 .color-normal { color: #666; }
 .color-active { color: #42b983; font-weight: bold; }
 
-/* 帖子头部的更多按钮靠右对齐 */
-.author-header { display: flex; align-items: center; margin-bottom: 30rpx; position: relative; }
 .post-more-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); padding: 10rpx 20rpx; }
 .more-dot { color: #999; font-size: 36rpx; letter-spacing: 2rpx; font-weight: bold; }
 
-/* 评论区右上角操作按钮组合 */
 .action-right { display: flex; align-items: center; gap: 20rpx; }
 .report-text { font-size: 22rpx; color: #BBB; padding: 4rpx 10rpx; }
 .report-text:active { color: #ff4d4f; }
-.post-body {
-    margin-top: 20rpx;
-}
-.content-text {
-    font-size: 30rpx;
-    line-height: 1.6;
-    color: #333;
-    display: block;
-    margin-bottom: 20rpx;
-}
-/* 图片九宫格布局 */
-.image-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12rpx;
-}
-.grid-img {
-    width: 220rpx;
-    height: 220rpx;
-    border-radius: 12rpx;
-    background-color: #f8f8f8;
-}
+.post-body { margin-top: 20rpx; }
+.content-text { font-size: 30rpx; line-height: 1.6; color: #333; display: block; margin-bottom: 20rpx; }
+.image-grid { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.grid-img { width: 220rpx; height: 220rpx; border-radius: 12rpx; background-color: #f8f8f8; }
 </style>
