@@ -24,42 +24,57 @@
 			</view>
 		</view>
 
-		<view class="action-group">
-			<button class="btn btn-history" @click="goToHistory">
-				<text class="icon">📜</text> 历史记录
-			</button>
-			<button class="btn btn-update" @click="goToGenerate">
-				<text class="icon">🔄</text> 更新计划
-			</button>
+		<view v-if="loading" class="loading-box">
+			<text>加载中...</text>
 		</view>
 
-		<view class="focus-section" v-if="weekPlan.weeklyFocus">
-			<view class="section-title">本周重点</view>
-			<view class="focus-content">
-				<text class="focus-text">{{ weekPlan.weeklyFocus }}</text>
+		<block v-else-if="weekPlan && weekPlan.id">
+			<view class="action-group">
+				<button class="btn btn-history" @click="goToHistory">
+					<text class="icon">📜</text> 历史记录
+				</button>
+				<button class="btn btn-update" @click="goToGenerate">
+					<text class="icon">🔄</text> 更新计划
+				</button>
 			</view>
-		</view>
 
-		<view class="weekly-section">
-			<view class="section-title">养护详细清单</view>
-			
-			<view class="day-block" v-for="(day, date) in groupedTasks" :key="date">
-				<view class="day-header">
-					<text class="day-name">{{ getDayLabel(date) }}</text>
-					<text class="day-date">{{ formatDate(date) }}</text>
+			<view class="focus-section" v-if="weekPlan.weeklyFocus">
+				<view class="section-title">本周重点</view>
+				<view class="focus-content">
+					<text class="focus-text">{{ weekPlan.weeklyFocus }}</text>
 				</view>
-				<view class="day-content">
-					<view class="task-line" v-for="(task, tIndex) in day" :key="tIndex">
-						<text class="task-cate">[{{ task.taskCategory }}]</text>
-						<text class="task-val">{{ task.taskContent }}</text>
+			</view>
+
+			<view class="weekly-section">
+				<view class="section-title">养护详细清单</view>
+				
+				<view class="day-block" v-for="(day, date) in groupedTasks" :key="date">
+					<view class="day-header">
+						<text class="day-name">{{ getDayLabel(date) }}</text>
+						<text class="day-date">{{ formatDate(date) }}</text>
+					</view>
+					<view class="day-content">
+						<view class="task-line" v-for="(task, tIndex) in day" :key="tIndex">
+							<text class="task-cate">[{{ task.taskCategory }}]</text>
+							<text class="task-val">{{ task.taskContent }}</text>
+						</view>
 					</view>
 				</view>
+				
+				<view class="no-data" v-if="Object.keys(groupedTasks).length === 0">
+					<text>暂无生成的详细计划</text>
+				</view>
 			</view>
-			
-			<view class="no-data" v-if="Object.keys(groupedTasks).length === 0">
-				<text>暂无生成的详细计划</text>
-			</view>
+		</block>
+
+		<view v-else class="empty-state">
+			<image class="empty-img" src="/static/images/empty-notice.png" mode="aspectFit"></image>
+			<text class="tip-text">本周养护计划还没生成</text>
+			<text class="sub-tip">上周计划已归档至历史记录</text>
+			<button class="generate-btn" @click="goToGenerate">立即生成本周计划</button>
+			<button class="history-btn-plain" @click="goToHistory">查看历史记录</button>
 		</view>
+
 	</view>
 </template>
 
@@ -69,26 +84,29 @@ export default {
 		return {
 			petId: null,
 			petInfo: {},
-			weekPlan: {},
-			groupedTasks: {} // 按日期分组的任务
+			weekPlan: null, // 初始化为 null 方便判断
+			groupedTasks: {},
+			loading: true // 新增：控制加载状态
 		};
 	},
 	onLoad(options) {
-	    const id = options.petid || options.petId;
-	    if (id && id !== 'undefined' && id !== 'null') {
-	        this.petId = id;
-	        this.fetchAllData();
-	    } else {
-	        uni.showToast({ title: '参数丢失，请返回', icon: 'none' });
-	    }
+		const id = options.petid || options.petId;
+		if (id && id !== 'undefined' && id !== 'null') {
+			this.petId = id;
+			this.fetchAllData();
+		} else {
+			uni.showToast({ title: '参数丢失，请返回', icon: 'none' });
+		}
 	},
 	methods: {
 		async fetchAllData() {
 			if (!this.petId) return;
 			
+			this.loading = true; // 开始加载
 			const token = uni.getStorageSync('token');
+			
 			try {
-				// 1. 获取宠物详细信息 (使用 PetVO 逻辑)
+				// 1. 获取宠物详细信息 (独立于计划，总是获取并展示)
 				const petRes = await uni.request({
 					url: `http://localhost:8080/pets/${this.petId}`,
 					method: 'GET',
@@ -96,20 +114,26 @@ export default {
 				});
 				if (petRes.data.code === 200) this.petInfo = petRes.data.data;
 
-				// 2. 获取当前生效的周计划 (含有 weeklyFocus)
+				// 2. 获取当前生效的周计划 (调用我们后端修改过的严格本周接口)
 				const weekRes = await uni.request({
 					url: `http://localhost:8080/care-plans-week/current/${this.petId}`,
 					method: 'GET',
 					header: { 'token': token }
 				});
 				
+				// 如果有数据，说明本周已经生成
 				if (weekRes.data.code === 200 && weekRes.data.data) {
 					this.weekPlan = weekRes.data.data;
 					// 3. 获取该周计划下的所有每日任务
-					this.fetchWeekTasks(this.weekPlan.id);
+					await this.fetchWeekTasks(this.weekPlan.id);
+				} else {
+					// 明确设置为 null，触发 v-else 空状态
+					this.weekPlan = null; 
 				}
 			} catch (e) {
 				uni.showToast({ title: '加载数据失败', icon: 'none' });
+			} finally {
+				this.loading = false; // 无论成功失败，结束加载状态
 			}
 		},
 
@@ -121,7 +145,6 @@ export default {
 				header: { 'token': token }
 			});
 			if (res.data.code === 200) {
-				// 前端逻辑：将任务数组按日期字段分组
 				const tasks = res.data.data;
 				const groups = {};
 				tasks.forEach(task => {
@@ -132,19 +155,19 @@ export default {
 			}
 		},
 
-		// 辅助方法：判断是周几
 		getDayLabel(dateStr) {
 			const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 			return days[new Date(dateStr).getDay()];
 		},
 		formatDate(dateStr) {
-			return dateStr.substring(5); // 截取 MM-DD
+			return dateStr.substring(5); 
 		},
 		goToHistory() {
 			uni.navigateTo({ url: `/pages/plan/history?petid=${this.petId}` });
 		},
 		goToGenerate() {
-			uni.navigateTo({ url: `/pages/plan/generate?petid=${this.petId}` });		}
+			uni.navigateTo({ url: `/pages/plan/generate?petid=${this.petId}` });		
+		}
 	}
 }
 </script>
@@ -152,7 +175,7 @@ export default {
 <style lang="scss">
 .container { padding: 15px; background: #f8f8f8; min-height: 100vh; }
 
-/* 宠物信息卡片 */
+/* ======== 保留你原有的完美样式 ======== */
 .info-card { 
 	background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; align-items: center;
 	box-shadow: 0 2px 10px rgba(0,0,0,0.02);
@@ -170,7 +193,6 @@ export default {
 	}
 }
 
-/* 按钮组 */
 .action-group { display: flex; justify-content: space-between; margin-bottom: 15px;
 	.btn { 
 		width: 48%; font-size: 14px; border-radius: 10px; height: 40px; line-height: 40px; margin: 0;
@@ -181,14 +203,12 @@ export default {
 	.btn-update { background: #007AFF; color: #fff; border: none; }
 }
 
-/* 养护重点 */
 .focus-section {
 	background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #007AFF;
 	.section-title { font-size: 15px; font-weight: bold; margin-bottom: 8px; color: #333; }
 	.focus-text { font-size: 13px; color: #555; line-height: 1.6; }
 }
 
-/* 周详细计划清单 */
 .weekly-section {
 	background: #fff; padding: 15px; border-radius: 12px;
 	.section-title { font-size: 15px; font-weight: bold; margin-bottom: 15px; color: #333; padding-bottom: 10px; border-bottom: 1px solid #f5f5f5; }
@@ -211,4 +231,32 @@ export default {
 	}
 }
 .no-data { text-align: center; color: #ccc; padding: 30px 0; font-size: 13px; }
+
+/* ======== 新增：加载中和空状态样式 ======== */
+.loading-box {
+	text-align: center; padding: 100rpx 0; font-size: 28rpx; color: #999;
+}
+
+.empty-state {
+	display: flex; flex-direction: column; align-items: center; padding-top: 80rpx;
+	background: #fff; border-radius: 12px; padding-bottom: 60rpx;
+	
+	.empty-img { width: 240rpx; height: 240rpx; margin-bottom: 30rpx; }
+	.tip-text { font-size: 32rpx; color: #333; font-weight: bold; }
+	.sub-tip { font-size: 24rpx; color: #999; margin-top: 10rpx; margin-bottom: 50rpx; }
+	
+	.generate-btn {
+		width: 80%; height: 88rpx; line-height: 88rpx;
+		background-color: #007AFF; /* 配合你原有的蓝色主色调 */
+		color: #fff; border-radius: 44rpx;
+		font-size: 30rpx; margin-bottom: 30rpx;
+		box-shadow: 0 4rpx 10rpx rgba(0, 122, 255, 0.2);
+		&::after { border: none; }
+	}
+	
+	.history-btn-plain {
+		background: transparent; color: #666; font-size: 28rpx; text-decoration: underline;
+		&::after { border: none; }
+	}
+}
 </style>
