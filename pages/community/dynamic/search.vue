@@ -56,20 +56,50 @@
 		data() {
 			return {
 				keyword: '',
+				confirmedKeyword: '', // 用于锁定当前真正执行搜索的关键词
 				localHistory: [], // 本地缓存的历史记录
 				sortType: 'hot',
 				results: [],
 				hasSearched: false
 			}
 		},
+		computed: {
+			// 动态生成防串号的本地缓存 Key
+			historyStorageKey() {
+				// 1. 尝试从用户信息中获取唯一ID
+				const userInfo = uni.getStorageSync('userInfo');
+				let uid = userInfo ? (userInfo.id || userInfo.userId) : uni.getStorageSync('userId');
+				
+				// 2. 兜底方案：如果本地没存 userId，就拿当前登录的 token 的后10位作为临时隔离标识
+				if (!uid) {
+					const token = uni.getStorageSync('token') || 'guest';
+					uid = token !== 'guest' ? token.slice(-10) : 'guest';
+				}
+				
+				return `post_search_history_${uid}`;
+			}
+		},
+		onLoad(options) {
+			// 支持从其他页面携带关键词跳转进来，例如：/pages/community/dynamic/search?kw=狗狗
+			if (options.kw) {
+				this.keyword = options.kw;
+				this.doSearch();
+			}
+		},
 		onShow() {
-			// 页面进入时加载本地历史
-			this.localHistory = uni.getStorageSync('post_search_history') || [];
+			// 页面进入时，加载属于当前账号的历史记录
+			this.localHistory = uni.getStorageSync(this.historyStorageKey) || [];
 		},
 		methods: {
 			doSearch() {
 				const kw = this.keyword.trim();
-				if (!kw) return;
+				if (!kw) {
+					uni.showToast({ title: '请输入搜索内容', icon: 'none' });
+					return;
+				}
+
+				// 关键点：锁定关键词，防止用户搜索后清空输入框，再点击“最新发布”时导致参数为空
+				this.confirmedKeyword = kw; 
 
 				// 1. 更新本地历史逻辑
 				let history = this.localHistory;
@@ -78,7 +108,8 @@
 				if (history.length > 10) history.pop(); // 只留10条
 
 				this.localHistory = history;
-				uni.setStorageSync('post_search_history', history);
+				// 存入当前账号专属的 Key 中
+				uni.setStorageSync(this.historyStorageKey, history);
 
 				// 2. 执行后端搜索请求
 				this.hasSearched = true;
@@ -95,8 +126,8 @@
 					success: (res) => {
 						if (res.confirm) {
 							this.localHistory = [];
-							uni.removeStorageSync('post_search_history');
-							// 注意：这里没有请求后端删除接口，数据库记录依然保留供推荐算法使用
+							// 只清空当前账号的缓存记录，不影响手机上的其他账号
+							uni.removeStorageSync(this.historyStorageKey);
 						}
 					}
 				});
@@ -104,7 +135,10 @@
 			switchSort(type) {
 				if (this.sortType === type) return;
 				this.sortType = type;
-				this.fetchResults();
+				// 切换排序时，必须基于已确认的关键词去请求
+				if (this.confirmedKeyword) {
+					this.fetchResults();
+				}
 			},
 			fetchResults() {
 				uni.showLoading({
@@ -114,7 +148,8 @@
 					url: 'http://localhost:8080/community-posts/search',
 					method: 'GET',
 					data: {
-						keyword: this.keyword.trim(),
+						// 核心修改：这里一定要用 confirmedKeyword，不能用 this.keyword.trim()
+						keyword: this.confirmedKeyword, 
 						sort: this.sortType
 					},
 					header: {
