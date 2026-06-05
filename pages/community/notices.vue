@@ -10,7 +10,7 @@
 		</view>
 
 		<view class="notice-list" v-else>
-			<view class="notice-card" v-for="(item, index) in noticeList" :key="item.notificationId" @click="goToDetail(item.postId)">
+			<view class="notice-card" v-for="(item, index) in noticeList" :key="item.id" @click="goToDetail(item.postId)">
 				<image class="avatar" :src="item.senderAvatar || '/static/default-avatar.png'" mode="aspectFill"></image>
 				
 				<view class="content-wrapper">
@@ -21,21 +21,17 @@
 					
 					<view class="action-wrap">
 						<text class="action-text" :class="getActionColor(item.type)">
-							{{ formatAction(item.type) }}
+							{{ item.actionText }}
 						</text>
-					</view>
-					
-					<view class="comment-box" v-if="item.type === 'COMMENT' && item.content">
-						<text class="comment-text">{{ item.content }}</text>
 					</view>
 					
 					<view class="post-preview-card">
 						<view class="preview-line"></view>
-						<text class="preview-text" v-if="item.postContentTeaser">
-							{{ item.postContentTeaser }}
+						<text class="preview-text" v-if="(item.postSummary || item.postContentTeaser) && item.postSummary !== '已删除的帖子'">
+						    {{ item.postSummary || item.postContentTeaser }}
 						</text>
 						<text class="preview-text deleted" v-else>
-							该动态已被删除
+						    该动态已被删除或丢失
 						</text>
 					</view>
 				</view>
@@ -66,6 +62,7 @@ export default {
 					this.isLoading = false;
 					if (res.data.code === 200) {
 						this.noticeList = res.data.data.records || res.data.data;
+						console.log('后端返回的通知列表:', this.noticeList);
 						this.clearUnreadCount(); // 拉取列表成功后，顺便告诉后端全部已读
 					}
 				},
